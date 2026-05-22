@@ -3,21 +3,21 @@ import { Link, useLocation } from 'react-router-dom'
 import { buildWhatsAppUrl } from '../lib/constants'
 import ThemeToggle from './ThemeToggle'
 
-const NAV_LINKS = [
-  { to: '/',            label: 'Home' },
-  { to: '/shop',        label: 'Shop' },
+const LINKS = [
+  { to: '/', label: 'Home' },
+  { to: '/shop', label: 'Shop' },
   { to: '/pixel-guide', label: 'Pixel Guide' },
-  { to: '/about',       label: 'About' },
-  { to: '/contact',     label: 'Contact' },
+  { to: '/about', label: 'About' },
+  { to: '/contact', label: 'Contact' },
 ]
 
 export default function Navbar() {
-  const [open, setOpen]     = useState(false)
-  const [solid, setSolid]   = useState(false)
-  const { pathname }        = useLocation()
+  const [open, setOpen]   = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const { pathname }      = useLocation()
 
   useEffect(() => {
-    const fn = () => setSolid(window.scrollY > 40)
+    const fn = () => setScrolled(window.scrollY > 8)
     window.addEventListener('scroll', fn, { passive: true })
     fn()
     return () => window.removeEventListener('scroll', fn)
@@ -25,45 +25,57 @@ export default function Navbar() {
 
   useEffect(() => { setOpen(false) }, [pathname])
 
+  const navStyle = {
+    position: 'fixed', top: 0, left: 0, right: 0, zIndex: 300,
+    height: 62,
+    background: scrolled ? 'var(--bg)' : 'transparent',
+    borderBottom: scrolled ? '1px solid var(--rule)' : '1px solid transparent',
+    transition: 'background 0.2s, border-color 0.2s',
+  }
+
   return (
     <>
-      <header style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
-        height: 62,
-        background: solid ? 'var(--bg-card)' : 'transparent',
-        borderBottom: solid ? '1px solid var(--border)' : '1px solid transparent',
-        backdropFilter: solid ? 'blur(16px)' : 'none',
-        transition: 'all 0.25s',
-      }}>
-        <div className="container" style={{ height: '100%', display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          {/* Logo */}
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexShrink: 0 }}>
+      <header style={navStyle}>
+        <div className="wrap" style={{ height: '100%', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+
+          {/* Logo — editorial wordmark */}
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0, textDecoration: 'none' }}>
             <div style={{
-              width: 30, height: 30, borderRadius: 7,
-              background: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 15,
+              width: 28, height: 28, borderRadius: 5,
+              background: 'var(--blue)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 14,
             }}>📱</div>
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.01em' }}>
-              Nova Mobiles<span style={{ color: 'var(--blue)' }}>+</span>
+            <span style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 700, fontSize: '1rem',
+              color: 'var(--ink)',
+              letterSpacing: '-0.01em',
+            }}>
+              Nova Mobiles<span style={{ color: 'var(--blue)', fontStyle: 'italic' }}>+</span>
             </span>
           </Link>
 
-          {/* Desktop nav */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flex: 1 }} className="desk-nav">
-            {NAV_LINKS.map(l => {
+          {/* Vertical rule */}
+          <div style={{ width: 1, height: 20, background: 'var(--rule)', flexShrink: 0 }} className="nav-rule" />
+
+          {/* Nav links */}
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '0.1rem', flex: 1 }} className="desk-nav">
+            {LINKS.map(l => {
               const active = pathname === l.to || (l.to !== '/' && pathname.startsWith(l.to))
               return (
                 <Link key={l.to} to={l.to} style={{
-                  padding: '0.4rem 0.75rem',
-                  borderRadius: 6,
-                  fontSize: '0.875rem',
-                  fontWeight: active ? 600 : 500,
-                  color: active ? 'var(--blue)' : 'var(--text-muted)',
-                  background: active ? 'var(--blue-muted)' : 'transparent',
-                  transition: 'all 0.15s',
+                  padding: '0.4rem 0.7rem',
+                  borderRadius: 5,
+                  fontSize: '0.82rem',
+                  fontWeight: active ? 600 : 400,
+                  color: active ? 'var(--blue)' : 'var(--ink-muted)',
+                  background: active ? 'var(--blue-dim)' : 'transparent',
+                  transition: 'all 0.12s',
+                  textDecoration: 'none',
                 }}
-                onMouseEnter={e => { if (!active) { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'var(--bg-elevated)' }}}
-                onMouseLeave={e => { if (!active) { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}}>
+                onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--ink)' }}
+                onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--ink-muted)' }}>
                   {l.label}
                 </Link>
               )
@@ -74,47 +86,40 @@ export default function Navbar() {
             <ThemeToggle />
             <a href={buildWhatsAppUrl('Hi! I want to buy a phone from Nova Mobiles Plus.')}
               target="_blank" rel="noopener noreferrer"
-              className="btn btn-green btn-sm desk-cta"
-              style={{ gap: '0.35rem' }}>
-              <span>💬</span> WhatsApp
+              className="btn btn-green btn-sm desk-cta">
+              💬 WhatsApp
             </a>
-            <button className="mob-menu-btn" onClick={() => setOpen(o => !o)}
-              style={{ display: 'none', background: 'none', border: 'none', color: 'var(--text)', fontSize: 22, padding: 4, lineHeight: 1 }}>
+            <button className="mob-btn" onClick={() => setOpen(o => !o)}
+              style={{ display: 'none', background: 'none', border: 'none', color: 'var(--ink)', fontSize: 20, padding: 4, lineHeight: 1, cursor: 'pointer' }}>
               {open ? '✕' : '☰'}
             </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile menu */}
       {open && (
         <div style={{
-          position: 'fixed', top: 62, left: 0, right: 0, zIndex: 199,
-          background: 'var(--bg-card)',
-          borderBottom: '1px solid var(--border)',
-          padding: '1rem 0',
-          boxShadow: 'var(--shadow-lg)',
+          position: 'fixed', top: 62, left: 0, right: 0, zIndex: 299,
+          background: 'var(--bg)',
+          borderBottom: '1px solid var(--rule)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
         }}>
-          <div className="container">
-            {NAV_LINKS.map(l => {
-              const active = pathname === l.to || (l.to !== '/' && pathname.startsWith(l.to))
-              return (
-                <Link key={l.to} to={l.to} style={{
-                  display: 'flex', alignItems: 'center',
-                  padding: '0.75rem 0',
-                  borderBottom: '1px solid var(--border)',
-                  fontWeight: active ? 600 : 500,
-                  color: active ? 'var(--blue)' : 'var(--text)',
-                  fontSize: '0.95rem',
-                }}>
-                  {l.label}
-                </Link>
-              )
-            })}
+          <div className="wrap" style={{ padding: '1rem 2rem' }}>
+            {LINKS.map(l => (
+              <Link key={l.to} to={l.to} style={{
+                display: 'flex', alignItems: 'center',
+                padding: '0.7rem 0',
+                borderBottom: '1px solid var(--rule)',
+                fontSize: '0.95rem',
+                fontWeight: pathname === l.to ? 600 : 400,
+                color: pathname === l.to ? 'var(--blue)' : 'var(--ink)',
+              }}>
+                {l.label}
+              </Link>
+            ))}
             <a href={buildWhatsAppUrl('Hi! I want to buy a phone from Nova Mobiles Plus.')}
               target="_blank" rel="noopener noreferrer"
-              className="btn btn-green"
-              style={{ marginTop: '1rem', width: '100%', justifyContent: 'center' }}>
+              className="btn btn-green btn-full" style={{ marginTop: '1rem' }}>
               💬 WhatsApp Us
             </a>
           </div>
@@ -123,9 +128,8 @@ export default function Navbar() {
 
       <style>{`
         @media (max-width: 768px) {
-          .desk-nav  { display: none !important; }
-          .desk-cta  { display: none !important; }
-          .mob-menu-btn { display: block !important; }
+          .desk-nav, .desk-cta, .nav-rule { display: none !important; }
+          .mob-btn { display: block !important; }
         }
       `}</style>
     </>

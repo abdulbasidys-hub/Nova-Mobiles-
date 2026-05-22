@@ -2,271 +2,246 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { getFeaturedPhones, getReviews, getAllPhones } from '../lib/phones'
 import { buildWhatsAppUrl, buildPhoneWhatsAppUrl, formatPrice } from '../lib/constants'
-import SectionHeader from '../components/SectionHeader'
-import StatusBadge from '../components/StatusBadge'
 import WatermarkBackground from '../components/WatermarkBackground'
 import PhoneCard from '../components/PhoneCard'
 
-function FeaturedTile({ phone }) {
-  return (
-    <div style={{
-      background: 'var(--bg-card)',
-      border: '1px solid var(--border)',
-      borderRadius: 12,
-      overflow: 'hidden',
-      display: 'flex', flexDirection: 'column',
-    }}>
-      <div style={{
-        height: 180, background: 'var(--bg-secondary)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        position: 'relative', overflow: 'hidden',
-      }}>
-        {phone.images?.[0]
-          ? <img src={phone.images[0]} alt={phone.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <span style={{ fontSize: 52 }}>📱</span>
-        }
-        <div style={{ position: 'absolute', top: 10, left: 10 }}>
-          <StatusBadge value={phone.condition} />
-        </div>
-      </div>
-      <div style={{ padding: '0.9rem 1rem' }}>
-        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--blue)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>{phone.brand}</p>
-        <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.6rem' }}>{phone.name}</p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem' }}>{formatPrice(phone.price)}</span>
-          <a href={buildPhoneWhatsAppUrl(phone)} target="_blank" rel="noopener noreferrer"
-            className="btn btn-green btn-sm">Buy</a>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function Home() {
   const [featured, setFeatured] = useState([])
-  const [reviews, setReviews]   = useState([])
-  const [stats, setStats]       = useState({ total: 0, london: 0, brandNew: 0 })
+  const [reviews,  setReviews]  = useState([])
+  const [potw,     setPotw]     = useState(null) // Phone of the Week
 
   useEffect(() => {
-    getFeaturedPhones().then(setFeatured)
+    getFeaturedPhones().then(d => { setFeatured(d); setPotw(d[0] || null) })
     getReviews().then(setReviews)
-    getAllPhones().then(phones => {
-      setStats({
-        total:    phones.filter(p => p.available).length,
-        london:   phones.filter(p => p.condition === 'London Used' && p.available).length,
-        brandNew: phones.filter(p => p.condition === 'Brand New' && p.available).length,
-      })
-    })
   }, [])
 
   return (
-    <div>
+    <div className="page-top">
 
-      {/* ── HERO ─────────────────────────────────────────────── */}
-      <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', paddingTop: 62, overflow: 'hidden' }}>
-        <WatermarkBackground src="/images/logo.png" opacity={0.04} size="500px" position="right" />
+      {/* ══ HERO ═══════════════════════════════════════════ */}
+      <section style={{ position: 'relative', overflow: 'hidden', borderBottom: '1px solid var(--rule)', paddingBottom: 0 }}>
+        <WatermarkBackground src="/images/logo.png" lightOpacity={0.03} darkOpacity={0.05} size="480px" align="right" />
 
-        {/* Subtle grid texture */}
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none',
-          backgroundImage: 'linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)',
-          backgroundSize: '60px 60px',
-          opacity: 0.4,
-        }} />
+        <div className="wrap" style={{ position: 'relative', zIndex: 1 }}>
 
-        <div className="container" style={{ position: 'relative', zIndex: 1, width: '100%', padding: '4rem 2rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }} className="hero-grid">
+          {/* Masthead headline */}
+          <div style={{ padding: '4rem 0 2.5rem', borderBottom: '1px solid var(--rule)' }}>
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--blue)', marginBottom: '1rem' }}>
+              No. 6 Lukoro B Farm Center, Kano — Est. 2015
+            </p>
+            <h1 style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 900,
+              fontSize: 'clamp(2.8rem, 7vw, 5.5rem)',
+              lineHeight: 0.98,
+              letterSpacing: '-0.03em',
+              color: 'var(--ink)',
+              marginBottom: '1.5rem',
+              maxWidth: 780,
+            }}>
+              Kano's Trusted<br />
+              <em style={{ fontStyle: 'italic', color: 'var(--blue)' }}>Google Pixel</em><br />
+              Destination.
+            </h1>
 
-            {/* Left */}
-            <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'var(--blue-muted)', border: '1px solid var(--blue-border)', borderRadius: 999, padding: '0.3rem 0.85rem', marginBottom: '1.75rem' }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--blue)', display: 'inline-block', animation: 'blink 1.6s infinite' }} />
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--blue)', letterSpacing: '0.04em' }}>Open Now · Mon–Sat 11am–6pm</span>
-              </div>
-              <h1 style={{ fontSize: 'clamp(2.4rem, 5vw, 3.8rem)', fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.025em', marginBottom: '1.25rem' }}>
-                Kano's Premium<br />
-                <span style={{ color: 'var(--blue)' }}>Pixel Showroom</span>
-              </h1>
-              <p style={{ fontSize: '1.05rem', color: 'var(--text-muted)', lineHeight: 1.75, marginBottom: '2rem', maxWidth: 420 }}>
-                Genuine smartphones — New, London Used & Accessories. Google Pixel, iPhone, Samsung, Oppo. Warranty on every device.
-              </p>
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <Link to="/shop" className="btn btn-primary btn-lg">Browse Phones →</Link>
-                <a href={buildWhatsAppUrl('Hi! I want to buy a phone from Nova Mobiles Plus.')}
-                  target="_blank" rel="noopener noreferrer" className="btn btn-green btn-lg">
-                  💬 WhatsApp Us
-                </a>
-              </div>
-              <div style={{ display: 'flex', gap: '2rem', marginTop: '2rem', flexWrap: 'wrap' }}>
-                {['✓ Warranty Included', '✓ Genuine Only', '✓ Nationwide Delivery', '✓ Returns Accepted'].map(t => (
-                  <span key={t} style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>{t}</span>
-                ))}
-              </div>
-            </div>
-
-            {/* Right — featured tiles */}
-            <div>
-              <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-faint)', marginBottom: '0.85rem' }}>
-                Featured Right Now
-              </p>
-              {featured.length === 0
-                ? <div className="grid-2">{[...Array(3)].map((_, i) => <div key={i} className="skeleton" style={{ height: 260 }} />)}</div>
-                : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.85rem' }}>
-                    {featured.slice(0, 3).map((p, i) => (
-                      <div key={p.id} style={{ gridColumn: i === 0 ? 'span 2' : 'span 1' }}>
-                        <FeaturedTile phone={p} />
-                      </div>
-                    ))}
-                  </div>
-              }
+            {/* Quick links row */}
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+              {[
+                { label: 'Browse Inventory →', to: '/shop',        cls: 'btn btn-primary btn-sm' },
+                { label: 'Compare Pixels',     to: '/pixel-guide', cls: 'btn btn-ghost btn-sm' },
+                { label: 'Learn Before Buying', to: '/pixel-guide', cls: 'btn btn-ghost btn-sm' },
+                { label: '💬 Chat on WhatsApp', href: buildWhatsAppUrl('Hi! I want to buy a phone.'), cls: 'btn btn-green btn-sm' },
+              ].map((l, i) =>
+                l.href
+                  ? <a key={i} href={l.href} target="_blank" rel="noopener noreferrer" className={l.cls}>{l.label}</a>
+                  : <Link key={i} to={l.to} className={l.cls}>{l.label}</Link>
+              )}
             </div>
           </div>
+
+          {/* Phone of the Week */}
+          <div style={{ padding: '2rem 0', borderBottom: '1px solid var(--rule)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--ink-faint)' }}>Phone of the Week</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--rule)' }} />
+              <Link to="/shop" style={{ fontSize: '0.75rem', color: 'var(--blue)', fontWeight: 600 }}>See all →</Link>
+            </div>
+
+            {potw ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', alignItems: 'center' }} className="potw-grid">
+                {/* Image */}
+                <div style={{ background: 'var(--bg-off)', borderRadius: 8, border: '1px solid var(--rule)', height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  {potw.images?.[0]
+                    ? <img src={potw.images[0]} alt={potw.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <span style={{ fontSize: 80, opacity: 0.25 }}>📱</span>
+                  }
+                </div>
+                {/* Info */}
+                <div>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--blue)', display: 'block', marginBottom: '0.5rem' }}>{potw.brand}</span>
+                  <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(1.6rem, 3vw, 2.5rem)', lineHeight: 1.1, marginBottom: '0.75rem' }}>{potw.name}</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.6rem' }}>{formatPrice(potw.price)}</span>
+                    <span className={`badge ${potw.condition === 'Brand New' ? 'badge-new' : potw.condition === 'London Used' ? 'badge-london' : 'badge-ng'}`}>{potw.condition}</span>
+                    {potw.storage && <span style={{ fontSize: '0.78rem', color: 'var(--ink-muted)' }}>{potw.storage}</span>}
+                  </div>
+                  {potw.specs && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1.5rem', padding: '1rem', background: 'var(--bg-off)', borderRadius: 6, border: '1px solid var(--rule)' }}>
+                      {Object.entries(potw.specs).slice(0, 3).map(([k, v]) => (
+                        <div key={k} style={{ display: 'flex', gap: '1rem' }}>
+                          <span style={{ color: 'var(--ink-faint)', fontSize: '0.75rem', textTransform: 'capitalize', width: 80, flexShrink: 0 }}>{k}</span>
+                          <span style={{ color: 'var(--ink-2)', fontSize: '0.82rem', fontWeight: 500 }}>{v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    <a href={buildPhoneWhatsAppUrl(potw)} target="_blank" rel="noopener noreferrer" className="btn btn-green">💬 Buy on WhatsApp</a>
+                    <Link to={`/shop/${potw.slug}`} className="btn btn-ghost">Full Details</Link>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }}>
+                <div className="skel" style={{ height: 320 }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div className="skel" style={{ height: 28, width: '60%' }} />
+                  <div className="skel" style={{ height: 52 }} />
+                  <div className="skel" style={{ height: 90 }} />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+
+        <style>{`@media (max-width: 768px) { .potw-grid { grid-template-columns: 1fr !important; } }`}</style>
       </section>
 
-      {/* ── LIVE INVENTORY STRIP ─────────────────────────────── */}
-      <div style={{ background: 'var(--blue)', color: '#fff' }}>
-        <div className="container" style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
-          {[
-            { label: 'Available Phones', value: stats.total || '—' },
-            { label: 'London Used',      value: stats.london || '—' },
-            { label: 'Brand New',        value: stats.brandNew || '—' },
-            { label: 'Brands Stocked',   value: '4+' },
-            { label: 'Years in Business',value: '10+' },
-          ].map((s, i) => (
-            <div key={s.label} style={{
-              flex: '1 0 140px', padding: '1rem 1.5rem',
-              borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.2)' : 'none',
-              textAlign: 'center',
-            }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '1.6rem', lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 600, opacity: 0.85, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── WHY US ───────────────────────────────────────────── */}
-      <section className="section">
-        <div className="container">
-          <SectionHeader label="Why Nova Mobiles Plus" title="Not just a phone shop." subtitle="A decade of trust, genuine stock, and expert knowledge — everything you need, nothing you don't." align="center" />
-          <div className="grid-4">
+      {/* ══ WHY PIXEL? ═════════════════════════════════════ */}
+      <section className="sec" style={{ borderBottom: '1px solid var(--rule)' }}>
+        <div className="wrap">
+          <div className="sec-label"><span>Why Google Pixel?</span></div>
+          <div className="g3">
             {[
-              { icon: '🛡️', title: 'Warranty on Every Phone', desc: 'All phones — new and used — come with warranty coverage. No exceptions.' },
-              { icon: '✅', title: '100% Genuine Stock',       desc: 'Every device is personally verified. No imitations, no compromises.' },
-              { icon: '🚚', title: 'Nationwide Delivery',      desc: 'We ship across Nigeria and internationally. Fast, safe, insured.' },
-              { icon: '🔄', title: 'Hassle-Free Returns',      desc: 'If something isn\'t right, we make it right. Simple as that.' },
-            ].map(({ icon, title, desc }) => (
-              <div key={title} style={{ padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 28, marginBottom: '0.85rem' }}>{icon}</div>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.4rem' }}>{title}</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.65 }}>{desc}</p>
+              {
+                num: '01', icon: '📸', head: 'The best camera\non any phone.',
+                body: 'Pixel's computational photography — Night Sight, Magic Eraser, Real Tone — produces professional-quality shots without editing. No other Android camera comes close.'
+              },
+              {
+                num: '02', icon: '🤖', head: 'Pure Android.\nNo clutter.',
+                body: 'Zero bloatware. No manufacturer skin. Just fast, clean Android exactly as Google designed it — with exclusive AI features like Call Screen and Live Translate.'
+              },
+              {
+                num: '03', icon: '💰', head: 'Flagship value\nfor half the price.',
+                body: 'A London Used Pixel 7 Pro gives you flagship performance for the price of a mid-range phone. No other brand offers this kind of value in Kano.'
+              },
+            ].map(p => (
+              <div key={p.num} style={{ paddingTop: '1.5rem', borderTop: '2px solid var(--blue)' }}>
+                <span className="editorial-num">{p.num}</span>
+                <div style={{ fontSize: 28, margin: '0.75rem 0' }}>{p.icon}</div>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.1rem, 2vw, 1.4rem)', fontWeight: 700, lineHeight: 1.2, whiteSpace: 'pre-line', marginBottom: '0.85rem' }}>{p.head}</h3>
+                <p style={{ color: 'var(--ink-muted)', fontSize: '0.875rem', lineHeight: 1.75 }}>{p.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── ALL FEATURED PHONES ──────────────────────────────── */}
-      <section className="section section-alt">
-        <div className="container">
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-            <SectionHeader label="Inventory" title="Available Now" subtitle="Hand-picked phones ready for immediate purchase." style={{ marginBottom: 0 }} />
-            <Link to="/shop" className="btn btn-ghost btn-sm">View Full Shop →</Link>
-          </div>
+      {/* ══ FEATURED INVENTORY ═════════════════════════════ */}
+      <section className="sec" style={{ background: 'var(--bg-off)', borderBottom: '1px solid var(--rule)' }}>
+        <div className="wrap">
+          <div className="sec-label"><span>Featured Inventory</span></div>
           {featured.length === 0
-            ? <div className="grid-3">{[...Array(3)].map((_, i) => <div key={i} className="skeleton" style={{ height: 340 }} />)}</div>
-            : <div className="grid-3">{featured.map(p => <PhoneCard key={p.id} phone={p} />)}</div>
+            ? <div className="g4">{[...Array(4)].map((_, i) => <div key={i} className="skel" style={{ height: 360 }} />)}</div>
+            : <div className="g4">{featured.map(p => <PhoneCard key={p.id} phone={p} />)}</div>
+          }
+          <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
+            <Link to="/shop" className="btn btn-ghost">View Full Inventory →</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ══ CUSTOMER REVIEWS ═══════════════════════════════ */}
+      <section className="sec" style={{ borderBottom: '1px solid var(--rule)' }}>
+        <div className="wrap">
+          <div className="sec-label"><span>What Customers Say</span></div>
+          {reviews.length === 0
+            ? <div className="g3">{[...Array(3)].map((_, i) => <div key={i} className="skel" style={{ height: 160 }} />)}</div>
+            : <div className="g3">
+                {reviews.slice(0, 3).map(r => (
+                  <blockquote key={r.id} style={{
+                    borderLeft: '3px solid var(--blue)',
+                    paddingLeft: '1.25rem',
+                    paddingTop: '0.25rem',
+                  }}>
+                    <p style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '1rem', lineHeight: 1.65, color: 'var(--ink-2)', marginBottom: '1rem' }}>
+                      "{r.text}"
+                    </p>
+                    <footer>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--blue-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.78rem', fontWeight: 700, color: 'var(--blue)', flexShrink: 0 }}>
+                          {r.name?.[0]}
+                        </div>
+                        <div>
+                          <p style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--ink)' }}>{r.name}</p>
+                          <p style={{ color: 'var(--ink-faint)', fontSize: '0.72rem' }}>{'★'.repeat(r.rating || 5)}</p>
+                        </div>
+                      </div>
+                    </footer>
+                  </blockquote>
+                ))}
+              </div>
           }
         </div>
       </section>
 
-      {/* ── PIXEL EDITORIAL ──────────────────────────────────── */}
-      <section className="section">
-        <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'center' }} className="pixel-grid">
+      {/* ══ LONDON USED EDUCATION PREVIEW ══════════════════ */}
+      <section className="sec" style={{ borderBottom: '1px solid var(--rule)' }}>
+        <div className="wrap">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '4rem', alignItems: 'center' }} className="lu-grid">
             <div>
-              <SectionHeader label="Google Pixel Specialists" title="The best camera phone for your budget." subtitle="From Pixel 6a to Pixel 9 Pro — we know every model inside-out and stock them all." />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.75rem' }}>
-                {['Best computational photography of any Android phone', '7 years of guaranteed OS updates (Pixel 8+)', 'Pure Android — no bloatware, no slowdowns', 'Exclusive Google AI features built into the OS'].map(f => (
-                  <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
-                    <span style={{ color: 'var(--blue)', fontWeight: 700, marginTop: 2, flexShrink: 0 }}>—</span>
-                    <span style={{ color: 'var(--text-2)', fontSize: '0.9rem' }}>{f}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <Link to="/pixel-guide" className="btn btn-primary">Read Pixel Guide →</Link>
-                <Link to="/shop" className="btn btn-ghost">Shop Pixels</Link>
-              </div>
+              <div className="sec-label"><span>Education</span></div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(1.6rem, 3vw, 2.25rem)', lineHeight: 1.1, marginBottom: '1rem' }}>
+                Buying London Used?<br /><em style={{ fontStyle: 'italic', color: 'var(--blue)' }}>Here's what you should know.</em>
+              </h2>
+              <p style={{ color: 'var(--ink-muted)', fontSize: '0.9rem', lineHeight: 1.8, marginBottom: '1.5rem' }}>
+                London Used phones are pre-owned devices sourced from the UK and Europe. At Nova Mobiles Plus, every one is tested, graded, and sold with warranty. They're not gambles — they're smart value.
+              </p>
+              <Link to="/pixel-guide" className="btn btn-primary btn-sm">Read the Full Guide →</Link>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
               {[
-                { model: 'Pixel 9 Pro', tag: 'Latest 2024', price: '₦680k+' },
-                { model: 'Pixel 8 Pro', tag: 'Best Value',  price: '₦500k+' },
-                { model: 'Pixel 7a',    tag: 'Budget Pick', price: '₦250k+' },
-                { model: 'Pixel 6a',    tag: 'Entry Level', price: '₦150k+' },
-              ].map(p => (
-                <div key={p.model} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 10, padding: '1rem', cursor: 'pointer', transition: 'border-color 0.2s' }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--blue-border)'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--blue)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{p.tag}</span>
-                  <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.9rem', margin: '0.3rem 0 0.2rem' }}>{p.model}</p>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', fontWeight: 600 }}>{p.price}</p>
+                ['🔍', 'Inspected before sale', 'Every device tested for faults, screen quality, battery health, and connectivity.'],
+                ['📦', 'What\'s in the box', 'Phones arrive with charger or cable. We tell you exactly what comes included.'],
+                ['🛡️', 'Warranty still applies', 'You get our warranty regardless of the phone\'s age or origin. No exceptions.'],
+                ['💡', 'How to grade the condition', 'We grade each phone Grade A (excellent), Grade B (good), or Grade C (visible wear).'],
+              ].map(([icon, title, text], i, arr) => (
+                <div key={title} style={{ display: 'flex', gap: '1rem', padding: '1.1rem 0', borderBottom: i < arr.length - 1 ? '1px solid var(--rule)' : 'none' }}>
+                  <span style={{ fontSize: 18, flexShrink: 0, marginTop: 2 }}>{icon}</span>
+                  <div>
+                    <p style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.2rem' }}>{title}</p>
+                    <p style={{ color: 'var(--ink-muted)', fontSize: '0.8rem', lineHeight: 1.65 }}>{text}</p>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
-        <style>{`@media (max-width: 768px) { .pixel-grid { grid-template-columns: 1fr !important; } }`}</style>
+        <style>{`@media (max-width: 768px) { .lu-grid { grid-template-columns: 1fr !important; gap: 2rem !important; } }`}</style>
       </section>
 
-      {/* ── REVIEWS ──────────────────────────────────────────── */}
-      <section className="section section-alt">
-        <div className="container">
-          <SectionHeader label="Customer Reviews" title="Trusted by thousands." subtitle="Real feedback from real buyers across Nigeria." align="center" />
-          {reviews.length === 0
-            ? <div style={{ display: 'flex', gap: '1.25rem' }}>{[...Array(3)].map((_, i) => <div key={i} className="skeleton" style={{ height: 140, flex: 1 }} />)}</div>
-            : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.25rem' }}>
-                {reviews.map(r => (
-                  <div key={r.id} className="card" style={{ padding: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
-                      <div style={{ display: 'flex', gap: 3 }}>
-                        {[...Array(r.rating || 5)].map((_, i) => (
-                          <span key={i} style={{ color: '#F59E0B', fontSize: '0.85rem' }}>★</span>
-                        ))}
-                      </div>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>{r.date || 'Verified buyer'}</span>
-                    </div>
-                    <p style={{ color: 'var(--text-2)', fontSize: '0.875rem', lineHeight: 1.7, marginBottom: '1rem', fontStyle: 'italic' }}>"{r.text}"</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--blue-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--blue)' }}>
-                        {r.name?.[0] || '?'}
-                      </div>
-                      <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{r.name}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-          }
-        </div>
-      </section>
-
-      {/* ── CTA ──────────────────────────────────────────────── */}
-      <section className="section" style={{ position: 'relative', overflow: 'hidden' }}>
-        <WatermarkBackground src="/images/logo.png" opacity={0.035} size="360px" />
-        <div className="container" style={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: 620, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.75rem)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: '0.85rem' }}>
-            Found the right phone?
+      {/* ══ CTA CLOSER ═════════════════════════════════════ */}
+      <section className="sec">
+        <div className="wrap-narrow" style={{ textAlign: 'center' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 900, fontSize: 'clamp(1.8rem, 4vw, 3rem)', lineHeight: 1.1, marginBottom: '0.85rem' }}>
+            Ready to find your phone?
           </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1rem', lineHeight: 1.7, marginBottom: '2rem' }}>
-            Message us on WhatsApp and we'll confirm availability, answer questions, and arrange delivery — all in one conversation.
+          <p style={{ color: 'var(--ink-muted)', fontSize: '0.95rem', lineHeight: 1.75, marginBottom: '2rem', maxWidth: 440, margin: '0 auto 2rem' }}>
+            Message us on WhatsApp — tell us your budget and what you need, and we'll guide you to the right device.
           </p>
           <a href={buildWhatsAppUrl("Hi Nova Mobiles Plus! I'm looking for a phone. Can you help?")}
-            target="_blank" rel="noopener noreferrer"
-            className="btn btn-green btn-lg" style={{ fontSize: '1rem' }}>
-            💬 Start a Conversation
+            target="_blank" rel="noopener noreferrer" className="btn btn-green btn-lg">
+            💬 Start the Conversation
           </a>
         </div>
       </section>

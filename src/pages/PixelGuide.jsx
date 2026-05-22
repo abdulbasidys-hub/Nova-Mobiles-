@@ -1,151 +1,180 @@
 import { Link } from 'react-router-dom'
 import { buildWhatsAppUrl } from '../lib/constants'
-import SectionHeader from '../components/SectionHeader'
+
+const ARTICLES = [
+  { num: '01', title: 'Why the Pixel camera beats phones costing twice as much',      tag: 'Camera', read: '4 min read' },
+  { num: '02', title: 'Understanding London Used: A grading guide for smart buyers',  tag: 'Buying Guide', read: '6 min read' },
+  { num: '03', title: 'Pixel 8 vs Pixel 7 Pro: Which is the better buy in 2025?',    tag: 'Comparison', read: '5 min read' },
+  { num: '04', title: 'Does the Pixel 6a still hold up in 2025?',                     tag: 'Review', read: '3 min read' },
+]
 
 const MODELS = [
-  { model: 'Pixel 9 Pro',  year: 2024, price: '₦680k+', tag: 'Latest · Best Overall', highlights: ['Tensor G4 · AI-first chip', '50MP Triple camera system', '6.3" LTPO OLED · 120Hz', '7 years of updates guaranteed'] },
-  { model: 'Pixel 8 Pro',  year: 2023, price: '₦500k+', tag: 'Best Value Flagship',    highlights: ['Tensor G3 processor', '50MP Triple + temperature sensor', 'Video Boost for pro video', 'Best-in-class low-light camera'] },
-  { model: 'Pixel 8',      year: 2023, price: '₦350k+', tag: 'Best Compact',           highlights: ['Tensor G3 · Compact 6.2"', '50MP main camera', '7 years OS updates', 'All-day battery life'] },
-  { model: 'Pixel 7a',     year: 2023, price: '₦250k+', tag: 'Best Budget Pixel',      highlights: ['Tensor G2 · 64MP camera', 'Wireless charging support', 'IP67 water resistance', 'Flagship feel, mid-range price'] },
-  { model: 'Pixel 7 Pro',  year: 2022, price: '₦280k+', tag: 'Pro Camera on a Budget', highlights: ['50MP Triple · 5x optical zoom', '6.7" curved LTPO OLED', 'Face unlock + fingerprint', 'Ideal London Used pick'] },
-  { model: 'Pixel 6a',     year: 2022, price: '₦150k+', tag: 'Entry Pixel',            highlights: ['Tensor G1 · Clean Android', '12MP camera · OIS', 'Long software support', 'Best entry-level value'] },
+  { name: 'Pixel 9 Pro', yr: '2024', price: '₦680k+', tag: 'Latest',        cam: '50MP Triple', upd: '7 yrs', zoom: '5×', highlights: 'Best-ever Pixel. Tensor G4, brightest display, top-tier AI.' },
+  { name: 'Pixel 8 Pro', yr: '2023', price: '₦500k+', tag: 'Best Value',    cam: '50MP Triple', upd: '7 yrs', zoom: '5×', highlights: 'Pro Pixel features at a more accessible price. Video Boost included.' },
+  { name: 'Pixel 8',     yr: '2023', price: '₦350k+', tag: 'Best Compact',  cam: '50MP',        upd: '7 yrs', zoom: '2×', highlights: 'Smaller, lighter, same 7-year update promise. Ideal daily driver.' },
+  { name: 'Pixel 7a',    yr: '2023', price: '₦250k+', tag: 'Best Budget',   cam: '64MP',        upd: '5 yrs', zoom: '2×', highlights: 'Best mid-range camera phone. Wireless charging, IP67, Tensor G2.' },
+  { name: 'Pixel 7 Pro', yr: '2022', price: '₦280k+', tag: 'Pro for Less',  cam: '50MP Triple', upd: '5 yrs', zoom: '5×', highlights: 'Curved display, 5× zoom, pro-level camera. Excellent London Used pick.' },
+  { name: 'Pixel 6a',    yr: '2022', price: '₦150k+', tag: 'Entry Level',   cam: '12MP',        upd: '5 yrs', zoom: 'None', highlights: 'Clean Android, Tensor G1, excellent value. Best entry-level Pixel.' },
 ]
 
-const REASONS = [
-  { icon: '📸', title: 'Best Camera Android',    body: 'Pixel cameras beat phones costing 3x more. Google\'s computational photography — Night Sight, Magic Eraser, Real Tone — produces shots that feel professional without any editing.' },
-  { icon: '🔄', title: '7 Years of Updates',     body: 'Pixel 8 and later receive 7 full years of Android OS and security updates. No other Android brand comes close. Your investment stays secure and current.' },
-  { icon: '🤖', title: 'Exclusive Google AI',    body: 'Call Screen, Live Translate, Magic Eraser, and on-device AI features are exclusive to Pixel. These aren\'t gimmicks — they\'re genuinely useful, every day.' },
-  { icon: '📱', title: 'Pure Android Experience', body: 'No manufacturer skin, no bloatware, no preloaded apps you can\'t remove. Pixel runs Android as Google designed it — fast, clean, and responsive.' },
-]
-
-const COMPARISON = [
-  { label: 'Camera Quality',    p6a: '⭐⭐⭐', p7a: '⭐⭐⭐⭐', p8: '⭐⭐⭐⭐', p8p: '⭐⭐⭐⭐⭐', p9p: '⭐⭐⭐⭐⭐' },
-  { label: 'Update Years',      p6a: '5 yrs',  p7a: '5 yrs', p8: '7 yrs', p8p: '7 yrs',     p9p: '7 yrs' },
-  { label: 'Optical Zoom',      p6a: 'None',   p7a: 'None',  p8: 'None',  p8p: '5x',        p9p: '5x' },
-  { label: 'Wireless Charging', p6a: '❌',     p7a: '✅',    p8: '✅',    p8p: '✅',         p9p: '✅' },
-  { label: 'Water Resistance',  p6a: 'IP67',   p7a: 'IP67',  p8: 'IP68',  p8p: 'IP68',       p9p: 'IP68' },
-  { label: 'Our Price (est.)',   p6a: '₦150k+', p7a: '₦250k+',p8: '₦350k+',p8p: '₦500k+',  p9p: '₦680k+' },
+const LU_CHECKLIST = [
+  { ok: true,  item: 'Screen has no dead pixels or bleed' },
+  { ok: true,  item: 'Face unlock and fingerprint scanner working' },
+  { ok: true,  item: 'All cameras functional (check selfie + rear)' },
+  { ok: true,  item: 'Speakers and microphone clear' },
+  { ok: true,  item: 'Charging port not loose or damaged' },
+  { ok: true,  item: 'Battery health above 80% ideally' },
+  { ok: true,  item: 'IMEI not blacklisted (we verify all our stock)' },
+  { ok: false, item: 'Minor cosmetic scratches are normal and expected' },
 ]
 
 export default function PixelGuide() {
   return (
-    <div className="page-pt">
+    <div className="page-top">
 
-      {/* ── HEADER ──────────────────────────────────────── */}
-      <div style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)', padding: '3rem 0 2.5rem', textAlign: 'center' }}>
-        <div className="container">
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--blue)', display: 'block', marginBottom: '0.5rem' }}>Google Pixel Specialists</span>
-          <h1 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, letterSpacing: '-0.025em', marginBottom: '0.75rem' }}>The Pixel Buyer's Guide</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1rem', maxWidth: 520, margin: '0 auto 1.5rem', lineHeight: 1.7 }}>
-            10+ years of selling Pixels in Kano. This is everything we'd tell a friend before they buy.
+      {/* Header */}
+      <div style={{ borderBottom: '1px solid var(--rule)', background: 'var(--bg-off)', padding: '3rem 0' }}>
+        <div className="wrap">
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--blue)', display: 'block', marginBottom: '0.5rem' }}>Google Pixel Specialists — Nova Mobiles Plus</span>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', letterSpacing: '-0.03em', lineHeight: 1.0, marginBottom: '1rem', maxWidth: 680 }}>
+            The Pixel Buyer's<br /><em style={{ fontStyle: 'italic', color: 'var(--blue)' }}>Field Guide.</em>
+          </h1>
+          <p style={{ color: 'var(--ink-muted)', fontSize: '0.9rem', maxWidth: 520, lineHeight: 1.75, marginBottom: '1.5rem' }}>
+            Ten years of selling Pixels in Kano. This is everything we'd tell a friend before they buy — honest, practical, and direct.
           </p>
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/shop" className="btn btn-primary">Shop Pixels Now →</Link>
-            <a href={buildWhatsAppUrl('Hi! I need help choosing a Google Pixel phone.')} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">Ask Us Directly</a>
+          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <Link to="/shop" className="btn btn-primary btn-sm">Shop Pixels Now →</Link>
+            <a href={buildWhatsAppUrl('Hi! I need help picking a Pixel phone.')} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">Ask Us Directly</a>
           </div>
         </div>
       </div>
 
-      <div className="container" style={{ paddingBottom: '5rem' }}>
+      <div className="wrap" style={{ paddingBottom: '5rem' }}>
 
-        {/* ── WHY PIXEL ──────────────────────────────────── */}
-        <div style={{ margin: '3rem 0' }}>
-          <SectionHeader label="Why Pixel?" title="Four reasons Pixel wins." subtitle="Not marketing — real reasons our customers keep coming back to Pixel." />
-          <div className="grid-2">
-            {REASONS.map(({ icon, title, body }) => (
-              <div key={title} style={{ display: 'flex', gap: '1rem', padding: '1.5rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 10 }}>
-                <span style={{ fontSize: 28, flexShrink: 0 }}>{icon}</span>
-                <div>
-                  <h3 style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.4rem' }}>{title}</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.7 }}>{body}</p>
-                </div>
-              </div>
-            ))}
+        {/* Article cards */}
+        <div style={{ margin: '3rem 0', borderBottom: '1px solid var(--rule)', paddingBottom: '3rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--ink-faint)' }}>Reading</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--rule)' }} />
           </div>
-        </div>
-
-        {/* ── MODEL CARDS ────────────────────────────────── */}
-        <div style={{ marginBottom: '3rem' }}>
-          <SectionHeader label="Which Pixel?" title="Every model explained." subtitle="Sorted from newest to most affordable." />
-          <div className="grid-3">
-            {MODELS.map(p => (
-              <div key={p.model} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '1.25rem', transition: 'border-color 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--blue-border)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem' }}>
-                  <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1rem' }}>{p.model}</h3>
-                  <span style={{ color: 'var(--text-faint)', fontSize: '0.72rem', fontWeight: 600 }}>{p.year}</span>
-                </div>
-                <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--blue)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>{p.tag}</p>
-                <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.2rem', color: 'var(--text)', marginBottom: '0.85rem' }}>{p.price}</p>
-                {p.highlights.map(h => (
-                  <div key={h} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 5, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                    <span style={{ color: 'var(--green)', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>✓</span> {h}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {ARTICLES.map((a, i, arr) => (
+              <div key={a.num} style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1.1rem 0', borderBottom: i < arr.length - 1 ? '1px solid var(--rule)' : 'none', cursor: 'default' }}>
+                <span className="editorial-num" style={{ width: 28, flexShrink: 0 }}>{a.num}</span>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', lineHeight: 1.3, marginBottom: '0.2rem' }}>{a.title}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span className="badge badge-blue">{a.tag}</span>
+                    <span style={{ color: 'var(--ink-faint)', fontSize: '0.7rem' }}>{a.read}</span>
                   </div>
-                ))}
+                </div>
+                <a href={buildWhatsAppUrl(`Hi! I want to learn more about: ${a.title}`)} target="_blank" rel="noopener noreferrer"
+                  style={{ color: 'var(--blue)', fontSize: '0.75rem', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                  Ask us →
+                </a>
               </div>
             ))}
           </div>
         </div>
 
-        {/* ── COMPARISON TABLE ────────────────────────────── */}
-        <div style={{ marginBottom: '3rem' }}>
-          <SectionHeader label="Side by Side" title="Comparison table." subtitle="At a glance — all six models compared on what matters." />
-          <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-              <thead>
-                <tr style={{ background: 'var(--blue)' }}>
-                  <th style={{ padding: '0.85rem 1rem', textAlign: 'left', color: '#fff', fontWeight: 700, whiteSpace: 'nowrap' }}>Feature</th>
-                  {['Pixel 6a', 'Pixel 7a', 'Pixel 8', 'Pixel 8 Pro', 'Pixel 9 Pro'].map(m => (
-                    <th key={m} style={{ padding: '0.85rem 1rem', textAlign: 'center', color: '#fff', fontWeight: 700, whiteSpace: 'nowrap' }}>{m}</th>
+        {/* Model comparison */}
+        <div style={{ marginBottom: '3rem', borderBottom: '1px solid var(--rule)', paddingBottom: '3rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--ink-faint)' }}>Model Comparison</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--rule)' }} />
+          </div>
+          <div className="g3">
+            {MODELS.map(m => (
+              <div key={m.name} style={{ padding: '1.25rem', border: '1px solid var(--card-border)', borderRadius: 8, transition: 'border-color 0.12s' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--blue-border)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--card-border)'}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '0.95rem' }}>{m.name}</h3>
+                  <span style={{ color: 'var(--ink-faint)', fontSize: '0.7rem', fontWeight: 600 }}>{m.yr}</span>
+                </div>
+                <span className="badge badge-blue" style={{ marginBottom: '0.6rem' }}>{m.tag}</span>
+                <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.1rem', color: 'var(--blue)', marginBottom: '0.75rem' }}>{m.price}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.75rem' }}>
+                  {[['📷', m.cam], ['🔄', `${m.upd} updates`], ['🔭', `${m.zoom} zoom`]].map(([ic, val]) => (
+                    <div key={val} style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', fontSize: '0.75rem', color: 'var(--ink-muted)' }}>
+                      <span style={{ fontSize: 12 }}>{ic}</span> {val}
+                    </div>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {COMPARISON.map((row, i) => (
-                  <tr key={row.label} style={{ background: i % 2 === 0 ? 'var(--bg-secondary)' : 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{row.label}</td>
-                    {[row.p6a, row.p7a, row.p8, row.p8p, row.p9p].map((v, j) => (
-                      <td key={j} style={{ padding: '0.75rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>{v}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', lineHeight: 1.6, borderTop: '1px solid var(--rule)', paddingTop: '0.6rem' }}>{m.highlights}</p>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* ── BUDGET GUIDE ────────────────────────────────── */}
-        <div style={{ marginBottom: '3rem' }}>
-          <SectionHeader label="Budget" title="What can you get for your money?" />
-          {[
-            { range: 'Under ₦200,000',  rec: 'Pixel 6a (London Used)', note: 'Clean Android, good camera, reliable updates' },
-            { range: '₦200k – ₦350k',   rec: 'Pixel 7a or Pixel 7 Pro (London Used)', note: 'Flagship experience at half the price' },
-            { range: '₦350k – ₦550k',   rec: 'Pixel 8 or Pixel 8 Pro',  note: 'Best current gen — 7-year updates, pro camera' },
-            { range: '₦550,000+',        rec: 'Pixel 9 Pro',             note: 'The absolute best. Future-proof for years.' },
-          ].map(({ range, rec, note }, i) => (
-            <div key={range} style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', padding: '1rem 1.25rem', background: i % 2 === 0 ? 'var(--bg-secondary)' : 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: i === 0 ? '10px 10px 0 0' : i === 3 ? '0 0 10px 10px' : 0, borderBottom: i < 3 ? 'none' : '1px solid var(--border)' }}>
-              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '0.9rem', color: 'var(--blue)', width: 145, flexShrink: 0 }}>{range}</span>
-              <div>
-                <p style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 3 }}>{rec}</p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{note}</p>
+        {/* London Used Checklist */}
+        <div style={{ marginBottom: '3rem', borderBottom: '1px solid var(--rule)', paddingBottom: '3rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'start' }} className="lu-grid">
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--ink-faint)' }}>London Used Checklist</span>
+                <div style={{ flex: 1, height: 1, background: 'var(--rule)' }} />
               </div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(1.4rem, 2.5vw, 2rem)', lineHeight: 1.1, marginBottom: '1rem' }}>
+                What to check before buying a used phone.
+              </h2>
+              <p style={{ color: 'var(--ink-muted)', fontSize: '0.875rem', lineHeight: 1.75, marginBottom: '1.5rem' }}>
+                When buying from Nova Mobiles Plus, we've already done these checks. But if you ever buy from elsewhere, this is the list every buyer should run through.
+              </p>
+              <a href={buildWhatsAppUrl('Hi! I have questions about buying a London Used phone.')} target="_blank" rel="noopener noreferrer"
+                className="btn btn-ghost btn-sm">Ask Us a Question →</a>
             </div>
-          ))}
+            <div>
+              {LU_CHECKLIST.map(({ ok, item }, i) => (
+                <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.75rem 0', borderBottom: i < LU_CHECKLIST.length - 1 ? '1px solid var(--rule)' : 'none' }}>
+                  <span style={{ fontSize: 14, marginTop: 1, flexShrink: 0 }}>{ok ? '✅' : '⚠️'}</span>
+                  <span style={{ fontSize: '0.85rem', color: ok ? 'var(--ink-2)' : 'var(--ink-muted)', fontWeight: ok ? 500 : 400 }}>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* ── CTA ─────────────────────────────────────────── */}
-        <div style={{ background: 'var(--blue-muted)', border: '1px solid var(--blue-border)', borderRadius: 12, padding: '2.5rem', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '0.75rem' }}>Still not sure which Pixel?</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem', maxWidth: 400, margin: '0 auto 1.5rem' }}>
-            Tell us your budget and what you use your phone for — we'll pick the right one for you.
+        {/* Budget grid */}
+        <div style={{ marginBottom: '3rem', borderBottom: '1px solid var(--rule)', paddingBottom: '3rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--ink-faint)' }}>Budget Guide</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--rule)' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {[
+              { r: 'Under ₦200,000',  rec: 'Pixel 6a (London Used)', note: 'Clean Android, solid camera, great for everyday use.' },
+              { r: '₦200k – ₦350k',   rec: 'Pixel 7a or Pixel 7 Pro',note: 'Flagship performance at half the price of new.' },
+              { r: '₦350k – ₦550k',   rec: 'Pixel 8 or Pixel 8 Pro', note: 'Best current generation — 7-year support, excellent camera.' },
+              { r: '₦550,000+',        rec: 'Pixel 9 Pro',            note: 'Future-proof. The absolute best Pixel money can buy.' },
+            ].map(({ r, rec, note }, i, arr) => (
+              <div key={r} style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start', padding: '1rem 0', borderBottom: i < arr.length - 1 ? '1px solid var(--rule)' : 'none', flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.9rem', color: 'var(--blue)', width: 155, flexShrink: 0 }}>{r}</span>
+                <div>
+                  <p style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.15rem' }}>{rec}</p>
+                  <p style={{ color: 'var(--ink-muted)', fontSize: '0.78rem' }}>{note}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div style={{ background: 'var(--bg-off)', border: '1px solid var(--rule)', borderRadius: 8, padding: '2.5rem', textAlign: 'center' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 900, fontSize: 'clamp(1.4rem, 3vw, 2rem)', marginBottom: '0.75rem' }}>
+            Still unsure which Pixel is right for you?
+          </h2>
+          <p style={{ color: 'var(--ink-muted)', fontSize: '0.875rem', maxWidth: 400, margin: '0 auto 1.5rem', lineHeight: 1.7 }}>
+            Tell us your budget and what you use your phone for. We'll pick the right one.
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href={buildWhatsAppUrl('Hi! I need help choosing a Google Pixel. Can you advise me?')} target="_blank" rel="noopener noreferrer" className="btn btn-green btn-lg">💬 Ask on WhatsApp</a>
-            <Link to="/shop" className="btn btn-primary btn-lg">Shop Pixels →</Link>
+            <a href={buildWhatsAppUrl('Hi! I need help choosing a Google Pixel. My budget is...')} target="_blank" rel="noopener noreferrer" className="btn btn-green btn-lg">💬 Ask on WhatsApp</a>
+            <Link to="/shop" className="btn btn-primary btn-lg">Shop Pixel Phones →</Link>
           </div>
         </div>
       </div>
+
+      <style>{`@media (max-width: 768px) { .lu-grid { grid-template-columns: 1fr !important; gap: 2rem !important; } }`}</style>
     </div>
   )
 }

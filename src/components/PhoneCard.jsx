@@ -1,75 +1,92 @@
 import { Link } from 'react-router-dom'
 import { buildPhoneWhatsAppUrl, formatPrice } from '../lib/constants'
-import StatusBadge from './StatusBadge'
+
+const BADGE = {
+  'Brand New':     { cls: 'badge-new',    label: 'Brand New' },
+  'London Used':   { cls: 'badge-london', label: 'London Used' },
+  'Nigerian Used': { cls: 'badge-ng',     label: 'Nigerian Used' },
+}
 
 export default function PhoneCard({ phone }) {
-  const isSold = !phone.available
+  const sold = !phone.available
+  const b = BADGE[phone.condition] || { cls: 'badge-new', label: phone.condition }
 
   return (
-    <div className="card" style={{
-      overflow: 'hidden',
-      opacity: isSold ? 0.65 : 1,
+    <article style={{
       display: 'flex', flexDirection: 'column',
-    }}>
+      background: 'var(--card-bg)',
+      border: '1px solid var(--card-border)',
+      borderRadius: 8,
+      overflow: 'hidden',
+      opacity: sold ? 0.6 : 1,
+      transition: 'border-color 0.14s, box-shadow 0.14s',
+    }}
+    onMouseEnter={e => { if (!sold) { e.currentTarget.style.borderColor = 'var(--blue-border)'; e.currentTarget.style.boxShadow = 'var(--shadow-lift)' }}}
+    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.boxShadow = 'none' }}>
+
       {/* Image */}
       <div style={{
         position: 'relative',
-        height: 188,
-        background: 'var(--bg-secondary)',
+        height: 196, flexShrink: 0,
+        background: 'var(--bg-off)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
-        flexShrink: 0,
       }}>
         {phone.images?.[0]
-          ? <img src={phone.images[0]} alt={phone.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s' }}
+          ? <img src={phone.images[0]} alt={phone.name}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s var(--ease)' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} />
-          : <div style={{ textAlign: 'center', color: 'var(--text-faint)' }}>
-              <div style={{ fontSize: 44 }}>📱</div>
-              <div style={{ fontSize: '0.72rem', marginTop: 6, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>No Image</div>
-            </div>
+              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            />
+          : <span style={{ fontSize: 50, opacity: 0.35 }}>📱</span>
         }
-        {/* Badges row */}
-        <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-          <StatusBadge value={phone.condition} />
+        {/* Condition badge top-left */}
+        <div style={{ position: 'absolute', top: 9, left: 9 }}>
+          <span className={`badge ${b.cls}`}>{b.label}</span>
         </div>
-        {phone.featured && !isSold && (
-          <div style={{ position: 'absolute', top: 10, right: 10 }}>
-            <span style={{ background: 'var(--blue)', color: '#fff', fontSize: '0.68rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: 999, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-              Featured
-            </span>
+        {/* Featured ribbon top-right */}
+        {phone.featured && !sold && (
+          <div style={{ position: 'absolute', top: 9, right: 9 }}>
+            <span className="badge badge-blue">Featured</span>
           </div>
         )}
-        {isSold && (
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', fontWeight: 800, fontFamily: 'var(--font-display)', fontSize: '1rem', padding: '0.4rem 1.1rem', borderRadius: 6, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Sold</span>
+        {/* Sold overlay */}
+        {sold && (
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ background: 'rgba(0,0,0,0.75)', color: '#fff', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0.4rem 0.9rem', borderRadius: 4 }}>Sold</span>
           </div>
         )}
       </div>
 
-      {/* Info */}
-      <div style={{ padding: '0.9rem 1rem 1rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--blue)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{phone.brand}</span>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>{phone.storage}</span>
+      {/* Body */}
+      <div style={{ padding: '0.85rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Brand line */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--blue)' }}>{phone.brand}</span>
+          {phone.storage && <span style={{ fontSize: '0.7rem', color: 'var(--ink-faint)', fontWeight: 500 }}>{phone.storage}</span>}
         </div>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.2rem', lineHeight: 1.3, color: 'var(--text)' }}>{phone.name}</h3>
-        {phone.color && <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.7rem' }}>{phone.color}</p>}
+        {/* Model name */}
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.95rem', fontWeight: 700, lineHeight: 1.2, marginBottom: '0.15rem', color: 'var(--ink)' }}>{phone.name}</h3>
+        {/* Spec line */}
+        <p style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', marginBottom: 'auto', paddingBottom: '0.75rem' }}>
+          {[phone.color, phone.storage].filter(Boolean).join(' · ')}
+        </p>
 
-        <div style={{ marginTop: 'auto', paddingTop: '0.65rem', borderTop: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.7rem' }}>
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.1rem', color: 'var(--text)' }}>{formatPrice(phone.price)}</span>
-            <StatusBadge value={phone.available ? 'Available' : 'Sold'} />
+        {/* Ruled foot */}
+        <div style={{ borderTop: '1px solid var(--rule)', paddingTop: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--ink)' }}>{formatPrice(phone.price)}</span>
+            <span className={`badge ${phone.available ? 'badge-avail' : 'badge-sold'}`}>{phone.available ? 'Available' : 'Sold'}</span>
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <Link to={`/shop/${phone.slug}`} className="btn btn-ghost btn-sm" style={{ flex: 1 }}>View</Link>
-            {!isSold && (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <Link to={`/shop/${phone.slug}`} className="btn btn-ghost btn-sm" style={{ flex: 1, justifyContent: 'center' }}>Details</Link>
+            {!sold && (
               <a href={buildPhoneWhatsAppUrl(phone)} target="_blank" rel="noopener noreferrer"
-                className="btn btn-green btn-sm" style={{ flex: 1 }}>WhatsApp</a>
+                className="btn btn-green btn-sm" style={{ flex: 1, justifyContent: 'center' }}>WhatsApp</a>
             )}
           </div>
         </div>
       </div>
-    </div>
+    </article>
   )
 }
