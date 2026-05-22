@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap');
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -12,8 +14,8 @@
   --text: #F1F5F9;
   --text-muted: #94a3b8;
   --border: rgba(255,255,255,0.07);
-  --font-display: 'Syne', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+  --font-body: 'Inter', sans-serif;
   --radius: 16px;
   --radius-sm: 10px;
 }
@@ -31,11 +33,15 @@ body {
 h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); }
 
 a { color: inherit; text-decoration: none; }
-
 img { max-width: 100%; display: block; }
 
-/* Utilities */
-.container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+/* Container — good padding on all screen sizes */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
 .section { padding: 5rem 0; }
 .section-dark { background: var(--bg-dark); }
 
@@ -45,7 +51,7 @@ img { max-width: 100%; display: block; }
   gap: 0.5rem;
   padding: 0.75rem 1.75rem;
   border-radius: var(--radius-sm);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
   border: none;
@@ -53,7 +59,6 @@ img { max-width: 100%; display: block; }
   text-decoration: none;
   font-family: var(--font-body);
 }
-
 .btn-primary { background: var(--blue); color: #fff; }
 .btn-primary:hover { background: var(--blue-hover); }
 .btn-green { background: var(--green); color: #fff; }
@@ -76,8 +81,8 @@ img { max-width: 100%; display: block; }
   font-size: 0.75rem;
   font-weight: 600;
 }
-.badge-new { background: rgba(22,163,74,0.2); color: #4ade80; border: 1px solid rgba(22,163,74,0.3); }
-.badge-london { background: rgba(244,168,39,0.2); color: #fbbf24; border: 1px solid rgba(244,168,39,0.3); }
+.badge-new      { background: rgba(22,163,74,0.2);  color: #4ade80; border: 1px solid rgba(22,163,74,0.3); }
+.badge-london   { background: rgba(244,168,39,0.2); color: #fbbf24; border: 1px solid rgba(244,168,39,0.3); }
 .badge-nigerian { background: rgba(26,115,232,0.2); color: #60a5fa; border: 1px solid rgba(26,115,232,0.3); }
 .badge-featured { background: rgba(244,168,39,0.15); color: var(--gold); border: 1px solid rgba(244,168,39,0.3); }
 
@@ -108,12 +113,19 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue); }
 textarea { resize: vertical; }
 label { display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.35rem; }
 
+/* Tablet */
 @media (max-width: 900px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .container { padding: 0 1.5rem; }
 }
+
+/* Mobile */
 @media (max-width: 600px) {
+  .container { padding: 0 1.25rem; }
   .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
   .page-title { font-size: 2rem; }
   .section { padding: 3rem 0; }
+  .page-header { padding: 6rem 0 2rem; }
+  .btn { font-size: 0.9rem; padding: 0.7rem 1.4rem; }
 }
