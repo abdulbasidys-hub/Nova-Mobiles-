@@ -1,12 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-const ThemeContext = createContext()
+const Ctx = createContext()
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => localStorage.getItem('nova-theme') || 'dark')
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('nova-theme', theme)
-  }, [theme])
-  const toggle = () => setTheme(t => t === 'dark' ? 'light' : 'dark')
-  return <ThemeContext.Provider value={{ theme, toggle }}>{children}</ThemeContext.Provider>
+  const [theme, setTheme] = useState(() => localStorage.getItem('nv-theme') || 'dark')
+  useEffect(() => { document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('nv-theme', theme) }, [theme])
+  return <Ctx.Provider value={{ theme, toggle: () => setTheme(t => t === 'dark' ? 'light' : 'dark') }}>{children}</Ctx.Provider>
 }
-export const useTheme = () => useContext(ThemeContext)
+export const useTheme = () => useContext(Ctx)

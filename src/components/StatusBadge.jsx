@@ -1,17 +1,18 @@
 const MAP = {
-  'Brand New':      { cls: 'status-new',      dot: '#22c55e', label: 'Brand New' },
-  'London Used':    { cls: 'status-london',   dot: '#f59e0b', label: 'London Used' },
-  'Nigerian Used':  { cls: 'status-nigeria',  dot: '#3b82f6', label: 'Nigerian Used' },
-  'Sold':           { cls: 'status-sold',     dot: '#ef4444', label: 'Sold' },
-  'Reserved':       { cls: 'status-reserved', dot: '#8b5cf6', label: 'Reserved' },
-  'Available':      { cls: 'status-available',dot: '#22c55e', label: 'Available' },
+  'Brand New':     { cls: 'st-new',    dot: '#60A5FA', label: 'Brand New' },
+  'London Used':   { cls: 'st-london', dot: '#FDE047', label: 'London Used' },
+  'Nigerian Used': { cls: 'st-avail',  dot: '#4ADE80', label: 'Nigerian Used' },
+  'Available':     { cls: 'st-avail',  dot: '#4ADE80', label: 'Available' },
+  'Sold':          { cls: 'st-sold',   dot: '#FCA5A5', label: 'Sold' },
+  'Reserved':      { cls: 'st-res',    dot: '#C4B5FD', label: 'Reserved' },
+  'Last One':      { cls: 'st-last',   dot: '#FB923C', label: 'Last One' },
+  'Just Arrived':  { cls: 'st-arr',    dot: '#4ADE80', label: 'Just Arrived' },
 }
-
-export default function StatusBadge({ value, showDot = true }) {
-  const m = MAP[value] || { cls: 'status-new', dot: '#94a3b8', label: value }
+export default function StatusBadge({ value }) {
+  const m = MAP[value] || { cls: 'st-blue', dot: 'var(--blue)', label: value }
   return (
-    <span className={`status ${m.cls}`}>
-      {showDot && <span style={{ width: 5, height: 5, borderRadius: '50%', background: m.dot, display: 'inline-block', flexShrink: 0 }} />}
+    <span className={`st ${m.cls}`}>
+      <span style={{ width: 5, height: 5, borderRadius: '50%', background: m.dot, display: 'inline-block', flexShrink: 0 }} />
       {m.label}
     </span>
   )
