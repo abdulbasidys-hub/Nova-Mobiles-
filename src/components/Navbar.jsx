@@ -11,83 +11,164 @@ const NAV = [
   { to: '/contact',     l: 'Contact' },
 ]
 
+function Logo() {
+  const [ok, setOk] = useState(true)
+  return (
+    <Link to="/" style={{ display:'flex', alignItems:'center', gap:'.5rem', textDecoration:'none' }}>
+      {ok
+        ? <img src="/images/logo.png" alt="Nova Mobiles Plus" onError={() => setOk(false)}
+            style={{ height:32, width:'auto', objectFit:'contain' }} />
+        : <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'1.05rem', color:'var(--primary)', letterSpacing:'-.01em' }}>
+            Nova Mobiles<span style={{ color:'var(--primary)' }}>+</span>
+          </span>
+      }
+    </Link>
+  )
+}
+
 export default function Navbar() {
-  const [open, setOpen] = useState(false)
-  const [solid, setSolid] = useState(false)
-  const { pathname } = useLocation()
-  const { theme, toggle } = useTheme()
+  const [open,    setOpen]    = useState(false)
+  const [scrolled,setScrolled]= useState(false)
+  const { pathname }          = useLocation()
+  const { theme, toggle }     = useTheme()
 
   useEffect(() => {
-    const fn = () => setSolid(window.scrollY > 4)
-    window.addEventListener('scroll', fn, { passive: true }); fn()
+    const fn = () => setScrolled(window.scrollY > 16)
+    window.addEventListener('scroll', fn, { passive:true }); fn()
     return () => window.removeEventListener('scroll', fn)
   }, [])
   useEffect(() => setOpen(false), [pathname])
 
+  const hStyle = {
+    position: 'fixed', top:0, left:0, right:0, zIndex:500,
+    height: 80,
+    background: 'var(--glass-nav)',
+    backdropFilter: 'blur(16px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+    borderBottom: '1px solid var(--outline-var)',
+    boxShadow: scrolled ? '0 1px 12px rgba(60,64,67,0.10)' : 'none',
+    transition: 'box-shadow .2s',
+  }
+
   return (
     <>
-      <header style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 400, height: 58,
-        background: solid ? 'var(--bg)' : 'transparent',
-        borderBottom: solid ? '1px solid var(--line)' : '1px solid transparent',
-        transition: 'background .18s, border-color .18s',
-      }}>
-        <div className="W" style={{ height: '100%', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          {/* Logo */}
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexShrink: 0 }}>
-            <div style={{ width: 28, height: 28, background: 'var(--blue)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>📱</div>
-            <span style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-.01em' }}>
-              NOVA MOBILES<span style={{ color: 'var(--blue)' }}>+</span>
-            </span>
-          </Link>
+      <header style={hStyle}>
+        <div className="W" style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'2rem' }}>
 
-          {/* Nav */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '.15rem', flex: 1 }} className="desk-nav">
+          <Logo />
+
+          {/* Desktop nav */}
+          <nav style={{ display:'flex', alignItems:'center', gap:'2rem', flex:1 }} className="desk-nav">
             {NAV.map(n => {
               const act = pathname === n.to || (n.to !== '/' && pathname.startsWith(n.to))
               return (
                 <Link key={n.to} to={n.to} style={{
-                  padding: '.38rem .7rem', borderRadius: 4, fontSize: '.82rem', fontWeight: act ? 700 : 500,
-                  color: act ? 'var(--blue)' : 'var(--ink-3)',
-                  background: act ? 'var(--blue-tint)' : 'transparent',
-                  transition: 'all .12s',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '.875rem',
+                  fontWeight: act ? 700 : 500,
+                  color: act ? 'var(--primary)' : 'var(--on-surface-var)',
+                  borderBottom: act ? '2px solid var(--primary)' : '2px solid transparent',
+                  paddingBottom: '2px',
+                  textDecoration: 'none',
+                  transition: 'color .14s',
                 }}
-                onMouseEnter={e => { if (!act) e.currentTarget.style.color = 'var(--ink)' }}
-                onMouseLeave={e => { if (!act) e.currentTarget.style.color = 'var(--ink-3)' }}>
+                onMouseEnter={e => { if (!act) e.currentTarget.style.color = 'var(--primary)' }}
+                onMouseLeave={e => { if (!act) e.currentTarget.style.color = 'var(--on-surface-var)' }}>
                   {n.l}
                 </Link>
               )
             })}
           </nav>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginLeft: 'auto' }}>
+          {/* Right actions */}
+          <div style={{ display:'flex', alignItems:'center', gap:'.75rem' }}>
             {/* Theme toggle */}
-            <button onClick={toggle} style={{ width: 32, height: 32, borderRadius: 4, background: 'var(--bg-3)', border: '1px solid var(--line)', color: 'var(--ink-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
+            <button onClick={toggle} style={{
+              width:36, height:36, borderRadius:'50%',
+              background:'var(--surface-low)',
+              border:'none', cursor:'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:16, transition:'background .14s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background='var(--surface-mid)'}
+            onMouseLeave={e => e.currentTarget.style.background='var(--surface-low)'}>
               {theme === 'dark' ? '☀️' : '🌙'}
             </button>
-            <a href={buildWhatsAppUrl('Hi! I want to buy a phone from Nova Mobiles Plus.')} target="_blank" rel="noopener noreferrer" className="btn btn-green btn-sm desk-cta">💬 WhatsApp</a>
-            <button className="mob-btn" onClick={() => setOpen(o => !o)} style={{ display: 'none', background: 'none', border: 'none', color: 'var(--ink)', fontSize: 20, padding: 4, cursor: 'pointer' }}>
-              {open ? '✕' : '☰'}
+
+            {/* Desktop WhatsApp */}
+            <a href={buildWhatsAppUrl('Hi! I want to buy a phone from Nova Mobiles Plus.')}
+              target="_blank" rel="noopener noreferrer"
+              style={{
+                display:'flex', alignItems:'center', gap:'.4rem',
+                background: 'var(--green-wa)', color:'#fff',
+                padding:'.5rem 1.1rem', borderRadius:8,
+                fontFamily:'var(--font-body)', fontWeight:600, fontSize:'.82rem',
+                textDecoration:'none',
+                transition:'transform .14s, box-shadow .14s',
+              }}
+              className="desk-cta"
+              onMouseEnter={e => { e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 4px 14px rgba(37,211,102,.4)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='none' }}>
+              <span className="material-symbols-outlined" style={{ fontSize:16 }}>chat</span>
+              WhatsApp
+            </a>
+
+            {/* Hamburger */}
+            <button className="mob-btn" onClick={() => setOpen(o => !o)} style={{
+              display:'none', background:'var(--surface-low)',
+              border:'none', borderRadius:8,
+              width:40, height:40,
+              alignItems:'center', justifyContent:'center',
+              fontSize:20, cursor:'pointer', color:'var(--on-surface)',
+            }}>
+              <span className="material-symbols-outlined">{open ? 'close' : 'menu'}</span>
             </button>
           </div>
         </div>
       </header>
 
+      {/* Mobile menu */}
       {open && (
-        <div style={{ position: 'fixed', top: 58, left: 0, right: 0, zIndex: 399, background: 'var(--bg)', borderBottom: '1px solid var(--line)', boxShadow: '0 8px 24px rgba(0,0,0,.15)' }}>
-          <div className="W" style={{ padding: '.75rem 2rem 1.25rem' }}>
-            {NAV.map(n => (
-              <Link key={n.to} to={n.to} style={{ display: 'block', padding: '.65rem 0', borderBottom: '1px solid var(--line)', fontSize: '.95rem', fontWeight: pathname === n.to ? 700 : 400, color: pathname === n.to ? 'var(--blue)' : 'var(--ink)' }}>
-                {n.l}
-              </Link>
-            ))}
-            <a href={buildWhatsAppUrl('Hi! I want to buy a phone from Nova Mobiles Plus.')} target="_blank" rel="noopener noreferrer" className="btn btn-green btn-w" style={{ marginTop: '.85rem' }}>💬 WhatsApp Us</a>
+        <div style={{
+          position:'fixed', top:80, left:0, right:0, zIndex:499,
+          background:'var(--glass-nav)',
+          backdropFilter:'blur(20px) saturate(180%)',
+          WebkitBackdropFilter:'blur(20px) saturate(180%)',
+          borderBottom:'1px solid var(--outline-var)',
+          boxShadow:'0 8px 24px rgba(0,0,0,.08)',
+        }}>
+          <div className="W" style={{ padding:'.75rem 2.5rem 1.25rem' }}>
+            {NAV.map(n => {
+              const act = pathname === n.to || (n.to !== '/' && pathname.startsWith(n.to))
+              return (
+                <Link key={n.to} to={n.to} style={{
+                  display:'block', padding:'.75rem 0',
+                  borderBottom:'1px solid var(--outline-var)',
+                  fontFamily:'var(--font-body)', fontWeight: act ? 700 : 500,
+                  fontSize:'.95rem',
+                  color: act ? 'var(--primary)' : 'var(--on-surface)',
+                  textDecoration:'none',
+                }}>
+                  {n.l}
+                </Link>
+              )
+            })}
+            <a href={buildWhatsAppUrl('Hi! I want to buy a phone from Nova Mobiles Plus.')}
+              target="_blank" rel="noopener noreferrer"
+              className="btn btn-wa btn-w btn-pill"
+              style={{ marginTop:'1rem' }}>
+              <span className="material-symbols-outlined" style={{ fontSize:18, fill:1 }}>chat</span>
+              WhatsApp Us
+            </a>
           </div>
         </div>
       )}
 
       <style>{`
-        @media(max-width:768px){ .desk-nav,.desk-cta{display:none!important} .mob-btn{display:flex!important} }
+        @media(max-width:768px){
+          .desk-nav,.desk-cta{ display:none!important }
+          .mob-btn{ display:flex!important }
+        }
       `}</style>
     </>
   )

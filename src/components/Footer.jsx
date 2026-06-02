@@ -1,49 +1,70 @@
 import { Link } from 'react-router-dom'
-import { SITE, buildWhatsAppUrl } from '../lib/constants'
+import { SITE } from '../lib/constants'
+
 export default function Footer() {
   return (
-    <footer style={{ borderTop: '1px solid var(--line)', background: 'var(--bg-2)', marginTop: '4rem' }}>
-      <div className="W" style={{ padding: '3rem 2rem 1.75rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1.4fr', gap: '2.5rem' }} className="ft-g">
+    <footer style={{ background:'var(--surface-lowest)', borderTop:'1px solid var(--outline-var)', marginTop:'5rem' }}>
+      <div className="W" style={{ padding:'4rem 2.5rem 1.5rem' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1.5fr', gap:'2.5rem' }} className="ft-g">
+
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.85rem' }}>
-              <div style={{ width: 26, height: 26, background: 'var(--blue)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>📱</div>
-              <span style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: '1rem' }}>NOVA MOBILES<span style={{ color: 'var(--blue)' }}>+</span></span>
-            </div>
-            <p style={{ color: 'var(--ink-3)', fontSize: '.82rem', lineHeight: 1.7, maxWidth: 220, marginBottom: '1rem' }}>Kano's trusted Google Pixel destination. New, London Used & Accessories. 10+ years.</p>
-            <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
-              <a href={buildWhatsAppUrl('Hi!')} target="_blank" rel="noopener noreferrer" className="btn btn-green btn-sm">💬 WhatsApp</a>
-              <a href={`https://tiktok.com/${SITE.tiktok}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">TikTok</a>
+            <p style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'1.05rem', color:'var(--on-surface)', marginBottom:'.85rem' }}>Nova Mobiles Plus</p>
+            <p style={{ color:'var(--on-secondary-container)', fontSize:'.875rem', lineHeight:1.7, maxWidth:240, marginBottom:'1.25rem' }}>
+              Your premier authority for flagship mobile devices in Kano. Genuine products, expert support.
+            </p>
+            <div style={{ display:'flex', gap:'.65rem' }}>
+              <a href={`https://tiktok.com/${SITE.tiktok}`} target="_blank" rel="noopener noreferrer"
+                style={{ width:38, height:38, borderRadius:'50%', background:'var(--surface-mid)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--primary)', transition:'background .14s', textDecoration:'none' }}
+                onMouseEnter={e => e.currentTarget.style.background='var(--primary-fixed)'}
+                onMouseLeave={e => e.currentTarget.style.background='var(--surface-mid)'}>
+                <span className="material-symbols-outlined" style={{ fontSize:18 }}>photo_camera</span>
+              </a>
+              <a href={`mailto:${SITE.email}`}
+                style={{ width:38, height:38, borderRadius:'50%', background:'var(--surface-mid)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--primary)', transition:'background .14s', textDecoration:'none' }}
+                onMouseEnter={e => e.currentTarget.style.background='var(--primary-fixed)'}
+                onMouseLeave={e => e.currentTarget.style.background='var(--surface-mid)'}>
+                <span className="material-symbols-outlined" style={{ fontSize:18 }}>mail</span>
+              </a>
             </div>
           </div>
+
           <div>
-            <p style={{ fontSize: '.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--ink-4)', marginBottom: '.85rem' }}>Pages</p>
+            <p style={{ fontFamily:'var(--font-body)', fontWeight:600, fontSize:'.7rem', textTransform:'uppercase', letterSpacing:'.12em', color:'var(--primary)', marginBottom:'1rem' }}>Explore</p>
             {[['/', 'Home'], ['/shop', 'Shop'], ['/pixel-guide', 'Pixel Guide'], ['/about', 'About'], ['/contact', 'Contact']].map(([to, l]) => (
-              <Link key={to} to={to} style={{ display: 'block', color: 'var(--ink-3)', fontSize: '.82rem', marginBottom: '.45rem', transition: 'color .12s' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--blue)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--ink-3)'}>{l}</Link>
+              <Link key={to} to={to} style={{ display:'block', color:'var(--on-secondary-container)', fontSize:'.875rem', marginBottom:'.55rem', transition:'color .12s', textDecoration:'none' }}
+                onMouseEnter={e => e.currentTarget.style.color='var(--primary)'}
+                onMouseLeave={e => e.currentTarget.style.color='var(--on-secondary-container)'}>
+                {l}
+              </Link>
             ))}
           </div>
+
           <div>
-            <p style={{ fontSize: '.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--ink-4)', marginBottom: '.85rem' }}>Brands</p>
-            {['Google Pixel', 'iPhone', 'Samsung', 'Oppo', 'Accessories'].map(b => <p key={b} style={{ color: 'var(--ink-3)', fontSize: '.82rem', marginBottom: '.45rem' }}>{b}</p>)}
-          </div>
-          <div>
-            <p style={{ fontSize: '.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--ink-4)', marginBottom: '.85rem' }}>Contact</p>
-            {[{ i: '📍', t: SITE.address }, { i: '🕐', t: SITE.hours }, { i: '✉️', t: SITE.email, h: `mailto:${SITE.email}` }].map(({ i, t, h }) => (
-              <div key={t} style={{ display: 'flex', gap: '.4rem', marginBottom: '.5rem' }}>
-                <span style={{ fontSize: 12, flexShrink: 0, marginTop: 2 }}>{i}</span>
-                {h ? <a href={h} style={{ color: 'var(--ink-3)', fontSize: '.8rem', lineHeight: 1.5 }}>{t}</a> : <span style={{ color: 'var(--ink-3)', fontSize: '.8rem', lineHeight: 1.5 }}>{t}</span>}
-              </div>
+            <p style={{ fontFamily:'var(--font-body)', fontWeight:600, fontSize:'.7rem', textTransform:'uppercase', letterSpacing:'.12em', color:'var(--primary)', marginBottom:'1rem' }}>Service</p>
+            {['Google Pixel', 'iPhone', 'Samsung', 'Oppo', 'Accessories'].map(b => (
+              <p key={b} style={{ color:'var(--on-secondary-container)', fontSize:'.875rem', marginBottom:'.55rem' }}>{b}</p>
             ))}
+          </div>
+
+          <div>
+            <p style={{ fontFamily:'var(--font-body)', fontWeight:600, fontSize:'.7rem', textTransform:'uppercase', letterSpacing:'.12em', color:'var(--primary)', marginBottom:'1rem' }}>Visit Our Store</p>
+            <p style={{ color:'var(--on-secondary-container)', fontSize:'.875rem', lineHeight:1.75, marginBottom:'1rem' }}>
+              {SITE.address}<br />Nigeria.
+            </p>
+            <p style={{ color:'var(--on-secondary-container)', fontSize:'.875rem', marginBottom:'.4rem' }}>
+              <span className="material-symbols-outlined" style={{ fontSize:15, marginRight:4 }}>schedule</span>
+              {SITE.hours}
+            </p>
+            <a href={`mailto:${SITE.email}`} style={{ color:'var(--primary)', fontSize:'.875rem', textDecoration:'none' }}>{SITE.email}</a>
           </div>
         </div>
-        <div style={{ borderTop: '1px solid var(--line)', marginTop: '2rem', paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.5rem' }}>
-          <p style={{ color: 'var(--ink-4)', fontSize: '.72rem' }}>© 2025 Nova Mobiles Plus. All rights reserved.</p>
-          <p style={{ color: 'var(--ink-4)', fontSize: '.72rem' }}>No. 6 Lukoro B Farm Center, Kano 🇳🇬</p>
+
+        <div style={{ borderTop:'1px solid var(--outline-var)', marginTop:'2.5rem', paddingTop:'1.25rem', display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:'.5rem' }}>
+          <p style={{ color:'var(--on-secondary-container)', fontSize:'.75rem' }}>© 2025 Nova Mobiles Plus Kano. Premier Pixel Authority.</p>
+          <p style={{ color:'var(--outline)', fontSize:'.75rem' }}>Designed with precision for the tech-forward.</p>
         </div>
       </div>
-      <style>{`@media(max-width:768px){.ft-g{grid-template-columns:1fr 1fr!important}}@media(max-width:480px){.ft-g{grid-template-columns:1fr!important}}`}</style>
+      <style>{`@media(max-width:768px){.ft-g{grid-template-columns:1fr 1fr!important;gap:2rem!important}}@media(max-width:480px){.ft-g{grid-template-columns:1fr!important}}`}</style>
     </footer>
   )
 }

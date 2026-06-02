@@ -1,5 +1,27 @@
+import { useState } from 'react'
 import { buildWhatsAppUrl, SITE } from '../lib/constants'
 import WatermarkSection from '../components/WatermarkSection'
+
+function SiteImage({ src, alt, fallbackIcon, fallbackLabel }) {
+  const [errored, setErrored] = useState(false)
+  if (errored) {
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '.5rem', background: 'var(--bg-3)' }}>
+        <span style={{ fontSize: 48, opacity: .2 }}>{fallbackIcon}</span>
+        <p style={{ fontSize: '.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--ink-4)' }}>{fallbackLabel}</p>
+        <p style={{ fontSize: '.65rem', color: 'var(--ink-4)' }}>public/images/</p>
+      </div>
+    )
+  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      onError={() => setErrored(true)}
+      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+    />
+  )
+}
 
 export default function About() {
   return (
@@ -14,10 +36,14 @@ export default function About() {
         </div>
       </div>
 
-      {/* Stats bar */}
-      <div style={{ borderBottom: '1px solid var(--line)', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }} className="stat-bar">
-        {[{ v: '10+', l: 'Years trading' }, { v: '5,000+', l: 'Happy customers' }, { v: '100%', l: 'Genuine stock' }, { v: 'Every', l: 'Phone warranted' }].map(s => (
-          <div key={s.l} style={{ textAlign: 'center', padding: '1.5rem 1rem', borderRight: '1px solid var(--line)' }}>
+      {/* Stats */}
+      <div style={{ borderBottom: '1px solid var(--line)', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)' }} className="stat-bar">
+        {[
+          { v: '10+',    l: 'Years trading' },
+          { v: '5,000+', l: 'Happy customers' },
+          { v: '100%',   l: 'Genuine stock' },
+        ].map((s, i, arr) => (
+          <div key={s.l} style={{ textAlign: 'center', padding: '1.5rem 1rem', borderRight: i < arr.length - 1 ? '1px solid var(--line)' : 'none' }}>
             <div className="num" style={{ fontSize: 'clamp(1.8rem,3vw,2.5rem)', color: 'var(--blue)', lineHeight: 1 }}>{s.v}</div>
             <div style={{ fontSize: '.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--ink-4)', marginTop: '.35rem' }}>{s.l}</div>
           </div>
@@ -26,104 +52,96 @@ export default function About() {
 
       <div className="W" style={{ paddingBottom: '5rem' }}>
 
-        {/* Story section */}
-        <WatermarkSection src="/images/logo.png" lightOp={0.025} darkOp={0.045} wmSize="320px" wmAlign="right"
+        {/* ── SECTION 1: The Founder ─────────────────────── */}
+        <WatermarkSection src="/images/logo.png" lightOp={0.025} darkOp={0.045} wmSize="300px" wmAlign="right"
           style={{ padding: '3rem 0', borderBottom: '1px solid var(--line)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3.5rem', alignItems: 'start' }} className="story-g">
-            <div>
-              <div className="sec-tag">The Founder</div>
-              <h2 style={{ fontFamily: 'var(--font-head)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.25rem)', letterSpacing: '-.02em', marginBottom: '1rem', lineHeight: 1.05 }}>AUWAL ADAM MUHAMMAD</h2>
-              {['Nova Mobiles Plus was built with one mission: give people in Kano access to genuine, high-quality smartphones at fair prices — without the guesswork.',
-                'Over a decade, we grew from a small stall in Farm Center to one of Kano\'s most recognized phone shops. Our reputation is built on honesty, quality London Used devices, and deep expertise in Google Pixel.',
-                'Every phone we sell is personally inspected. We don\'t sell fakes. We don\'t cut corners. That\'s the Nova promise.'
-              ].map((t, i) => <p key={i} style={{ color: 'var(--ink-2)', fontSize: '.875rem', lineHeight: 1.8, marginBottom: '.85rem' }}>{t}</p>)}
+          <div className="sec-tag">The Founder</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '3rem', alignItems: 'start' }} className="owner-g">
+
+            {/* Owner photo — no caption */}
+            <div style={{ width: '100%', aspectRatio: '4/3', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
+              <SiteImage src="/images/owner.jpg" alt="Auwal Adam Muhammad" fallbackIcon="👤" fallbackLabel="owner.jpg" />
             </div>
+
+            {/* Biography — name on top instead of heading */}
             <div>
-              <div style={{ height: 280, background: 'var(--bg-3)', border: '1px solid var(--line)', borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '.6rem' }}>
-                <div style={{ textAlign: 'center', color: 'var(--ink-4)' }}>
-                  <span style={{ fontSize: 36, display: 'block', marginBottom: 6 }}>🏪</span>
-                  <p style={{ fontSize: '.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>Shop Photo</p>
-                  <p style={{ fontSize: '.68rem', marginTop: 4 }}>Add to public/images/shop.jpg</p>
-                </div>
-              </div>
-              <p style={{ fontSize: '.72rem', color: 'var(--ink-4)', textAlign: 'center' }}>{SITE.address}</p>
+              {/* Name + title replace the old heading */}
+              <h2 style={{ fontFamily: 'var(--font-head)', fontWeight: 900, fontSize: 'clamp(1.3rem, 2.5vw, 1.9rem)', letterSpacing: '-.02em', lineHeight: 1.1, marginBottom: '.2rem' }}>
+                Auwal Adam Muhammad
+              </h2>
+              <p style={{ fontSize: '.78rem', color: 'var(--blue)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: '1.1rem' }}>
+                Founder, Nova Mobiles Plus
+              </p>
+
+              {[
+                'Auwal Adam Muhammad is the founder and owner of Nova Mobiles Plus, one of Kano\'s most recognized smartphone shops. What started as a small stall at Farm Center has grown into a trusted destination for buyers across Nigeria.',
+                'With over 10 years of hands-on experience in the phone market, Auwal has built a reputation for honesty, deep product knowledge, and a genuine commitment to his customers. He personally inspects every device that comes through the shop — no exceptions.',
+                'His specialty is Google Pixel phones, which he has stocked and sold long before most shops in Kano knew the brand. If you want straight advice on which phone suits your needs and budget, Auwal is the person to ask.',
+              ].map((t, i) => (
+                <p key={i} style={{ color: 'var(--ink-2)', fontSize: '.875rem', lineHeight: 1.85, marginBottom: '.9rem' }}>{t}</p>
+              ))}
             </div>
           </div>
         </WatermarkSection>
 
-        {/* Values */}
+        {/* ── SECTION 2: The Shop ───────────────────────── */}
         <div style={{ padding: '3rem 0', borderBottom: '1px solid var(--line)' }}>
-          <div className="sec-tag">How We Work</div>
-          <h2 style={{ fontFamily: 'var(--font-head)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2rem)', letterSpacing: '-.02em', marginBottom: '1.5rem' }}>Our Values</h2>
-          <div className="g3">
-            {[
-              { i: '🔍', t: 'Transparency', b: 'We tell you exactly what you\'re getting. Condition, specs, warranty, price. No hidden surprises, ever.' },
-              { i: '🤝', t: 'Trust',        b: 'Most customers come through referrals. That repeat trust is our most important business metric.' },
-              { i: '📚', t: 'Expertise',    b: 'We know phones deeply — especially Pixel. Ask us anything. You\'ll get a straight answer, not a sales pitch.' },
-            ].map(({ i, t, b }) => (
-              <div key={t} style={{ padding: '1.5rem', border: '1px solid var(--line)', borderRadius: 'var(--r)', borderTop: `3px solid var(--blue)` }}>
-                <span style={{ fontSize: 26, display: 'block', marginBottom: '.65rem' }}>{i}</span>
-                <h3 style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: '.95rem', marginBottom: '.35rem' }}>{t}</h3>
-                <p style={{ color: 'var(--ink-3)', fontSize: '.82rem', lineHeight: 1.7 }}>{b}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+          <div className="sec-tag">The Shop</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '3rem', alignItems: 'start' }} className="shop-g">
 
-        {/* London Used */}
-        <div style={{ padding: '3rem 0', borderBottom: '1px solid var(--line)' }}>
-          <div className="sec-tag">London Used Explained</div>
-          <h2 style={{ fontFamily: 'var(--font-head)', fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2rem)', letterSpacing: '-.02em', marginBottom: '1.5rem' }}>What "London Used" Actually Means</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }} className="lu-g2">
+            {/* Shop info */}
             <div>
-              <p style={{ color: 'var(--ink-2)', fontSize: '.875rem', lineHeight: 1.8, marginBottom: '1rem' }}>
-                London Used phones are pre-owned devices sourced from the UK and Europe — returns, trade-ins, and end-of-lease units from verified suppliers. We inspect and grade each one before sale.
+              <h2 style={{ fontFamily: 'var(--font-head)', fontWeight: 900, fontSize: 'clamp(1.3rem, 2.5vw, 1.9rem)', letterSpacing: '-.02em', lineHeight: 1.1, marginBottom: '1.1rem' }}>
+                Farm Center, Kano.<br />Come see us.
+              </h2>
+              <p style={{ color: 'var(--ink-2)', fontSize: '.875rem', lineHeight: 1.85, marginBottom: '1.25rem' }}>
+                We're based at No. 6 Lukoro B Farm Center, Kano. Walk in any day Monday to Saturday between 11am and 6pm. You'll find a fully stocked shop where you can see, hold, and test any phone before you buy. No pressure — just honest advice.
               </p>
-              <p style={{ color: 'var(--ink-2)', fontSize: '.875rem', lineHeight: 1.8 }}>
-                You're not buying a gamble. You're buying a tested, verified, warranted device at a fraction of the new price.
-              </p>
-            </div>
-            <div style={{ border: '1px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
-              {['Fully tested before sale', 'Clean cosmetic condition (minor marks possible)', 'Full warranty included', 'IMEI verified — not blacklisted', 'Sourced from UK/EU suppliers', 'Dramatically cheaper than brand new'].map((item, i, arr) => (
-                <div key={item} style={{ display: 'flex', gap: '.65rem', padding: '.65rem .9rem', borderBottom: i < arr.length - 1 ? '1px solid var(--line)' : 'none', background: i % 2 === 0 ? 'var(--bg)' : 'var(--bg-2)', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--blue)', fontWeight: 800, fontSize: '.75rem', flexShrink: 0 }}>✓</span>
-                  <span style={{ fontSize: '.82rem', color: 'var(--ink-2)' }}>{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Hours + Visit */}
-        <div style={{ padding: '3rem 0' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }} className="visit-g">
-            <div>
-              <div className="sec-tag">Find Us</div>
-              <h2 style={{ fontFamily: 'var(--font-head)', fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-.02em', marginBottom: '1.25rem' }}>Visit the Shop</h2>
-              <div style={{ border: '1px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
-                {[{ l: 'Address', v: SITE.address }, { l: 'Hours', v: SITE.hours }, { l: 'Email', v: SITE.email }].map(({ l, v }, i, arr) => (
-                  <div key={l} style={{ display: 'flex', gap: '1.5rem', padding: '.75rem 1rem', borderBottom: i < arr.length - 1 ? '1px solid var(--line)' : 'none', background: i % 2 === 0 ? 'var(--bg)' : 'var(--bg-2)' }}>
-                    <span style={{ color: 'var(--ink-4)', fontSize: '.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', width: 70, flexShrink: 0, paddingTop: 2 }}>{l}</span>
-                    <span style={{ color: 'var(--ink-2)', fontSize: '.875rem' }}>{v}</span>
+              <div style={{ border: '1px solid var(--line)', borderRadius: 'var(--r)', overflow: 'hidden', marginBottom: '1.25rem' }}>
+                {[
+                  { l: 'Address', v: SITE.address },
+                  { l: 'Hours',   v: SITE.hours },
+                  { l: 'Email',   v: SITE.email },
+                ].map(({ l, v }, i, arr) => (
+                  <div key={l} style={{ display: 'flex', borderBottom: i < arr.length - 1 ? '1px solid var(--line)' : 'none' }}>
+                    <div style={{ width: 90, flexShrink: 0, padding: '.6rem .85rem', background: 'var(--bg-2)', borderRight: '1px solid var(--line)' }}>
+                      <span style={{ fontSize: '.68rem', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{l}</span>
+                    </div>
+                    <div style={{ padding: '.6rem .85rem', flex: 1 }}>
+                      <span style={{ fontSize: '.85rem', color: 'var(--ink)', fontWeight: 500 }}>{v}</span>
+                    </div>
                   </div>
                 ))}
               </div>
-              <a href={buildWhatsAppUrl('Hi Auwal! I want to visit. Are you open?')} target="_blank" rel="noopener noreferrer" className="btn btn-green" style={{ marginTop: '1.25rem' }}>💬 WhatsApp Before Visiting</a>
+              <a href={buildWhatsAppUrl('Hi Auwal! I want to visit Nova Mobiles Plus. Are you open?')}
+                target="_blank" rel="noopener noreferrer" className="btn btn-green">
+                💬 WhatsApp Before Visiting
+              </a>
             </div>
-            <div style={{ height: 220, background: 'var(--bg-3)', border: '1px solid var(--line)', borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ textAlign: 'center', color: 'var(--ink-4)' }}>
-                <span style={{ fontSize: 30, display: 'block', marginBottom: 6 }}>📍</span>
-                <p style={{ fontSize: '.72rem', fontWeight: 700 }}>Map Preview</p>
-                <p style={{ fontSize: '.68rem', marginTop: 4 }}>No. 6 Lukoro B Farm Center, Kano</p>
+
+            {/* Shop photo */}
+            <div>
+              <div style={{ width: '100%', aspectRatio: '4/3', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
+                <SiteImage src="/images/shop.jpg" alt="Nova Mobiles Plus shop" fallbackIcon="🏪" fallbackLabel="shop.jpg" />
               </div>
+              <p style={{ fontSize: '.72rem', color: 'var(--ink-4)', textAlign: 'center', marginTop: '.6rem' }}>No. 6 Lukoro B Farm Center, Kano</p>
             </div>
           </div>
         </div>
+
       </div>
 
       <style>{`
-        @media(max-width:768px){.story-g,.lu-g2,.visit-g{grid-template-columns:1fr!important;gap:2rem!important}}
-        @media(max-width:480px){.stat-bar{grid-template-columns:1fr 1fr!important}}
+        @media (max-width: 768px) {
+          .owner-g { grid-template-columns: 1fr !important; gap: 1.5rem !important; }
+          .shop-g  { grid-template-columns: 1fr !important; gap: 1.5rem !important; }
+          .lu-g    { grid-template-columns: 1fr !important; gap: 1.5rem !important; }
+          .shop-g > div:last-child { order: -1; }
+          .stat-bar { grid-template-columns: repeat(3,1fr) !important; }
+        }
+        @media (max-width: 400px) {
+          .stat-bar { grid-template-columns: 1fr !important; }
+        }
       `}</style>
     </div>
   )
