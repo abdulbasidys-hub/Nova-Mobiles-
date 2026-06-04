@@ -1,28 +1,27 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getPhoneBySlug, getAllPhones } from '../lib/phones'
-import { buildPhoneWhatsAppUrl, buildWhatsAppUrl, formatPrice } from '../lib/constants'
+import { buildPhoneWhatsAppUrl, formatPrice } from '../lib/constants'
 import ProductCard from '../components/ProductCard'
 
 function buildLiveVideoUrl(phone) {
-  const msg = `Hi Nova Mobiles Plus! I'm interested in the ${phone.name} (${phone.condition}, ${formatPrice(phone.price)}) and I'd like to request a live video of the phone. Is that possible?`
+  const msg = `Hi Nova Mobiles Plus! I'd like to request a live video of the ${phone.name} (${phone.condition}). Is it available?`
   return `https://wa.me/2348177777770?text=${encodeURIComponent(msg)}`
 }
 
-const ROWS = [
+/* ── Compare Modal ──────────────────────────────── */
+const COMPARE_ROWS = [
   { label:'Price',     fn:p => formatPrice(p.price) },
   { label:'Condition', fn:p => p.condition },
   { label:'Storage',   fn:p => p.storage || '—' },
-  { label:'Color',     fn:p => p.color   || '—' },
-  { label:'Display',   fn:p => p.specs?.display   || '—' },
-  { label:'Processor', fn:p => p.specs?.processor || '—' },
-  { label:'Camera',    fn:p => p.specs?.camera    || '—' },
-  { label:'Battery',   fn:p => p.specs?.battery   || '—' },
-  { label:'RAM',       fn:p => p.specs?.ram        || '—' },
+  { label:'Color',     fn:p => p.color    || '—' },
+  { label:'Display',   fn:p => p.specs?.display    || '—' },
+  { label:'Processor', fn:p => p.specs?.processor  || '—' },
+  { label:'Camera',    fn:p => p.specs?.camera     || '—' },
+  { label:'Battery',   fn:p => p.specs?.battery    || '—' },
   { label:'Status',    fn:p => p.available ? 'Available' : 'Sold' },
 ]
 
-/* Compare modal */
 function CompareModal({ basePhone, allPhones, onClose }) {
   const [selected, setSelected] = useState([])
   const [search,   setSearch]   = useState('')
@@ -30,68 +29,67 @@ function CompareModal({ basePhone, allPhones, onClose }) {
 
   const pool     = allPhones.filter(p => p.slug !== basePhone.slug)
   const filtered = search ? pool.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.brand.toLowerCase().includes(search.toLowerCase())) : pool
-  const toggle   = p => selected.find(s => s.slug === p.slug) ? setSelected(prev => prev.filter(s => s.slug !== p.slug)) : selected.length < 2 ? setSelected(prev => [...prev, p]) : null
-  const list     = [basePhone, ...selected]
+  const toggle   = p => selected.find(s => s.slug === p.slug)
+    ? setSelected(prev => prev.filter(s => s.slug !== p.slug))
+    : selected.length < 2 ? setSelected(prev => [...prev, p]) : null
+  const compareList = [basePhone, ...selected]
 
   return (
     <div style={{ position:'fixed', inset:0, zIndex:900, background:'rgba(0,0,0,.55)', display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem' }}
       onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ background:'var(--surface-lowest)', borderRadius:20, width:'100%', maxWidth:840, maxHeight:'90vh', display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'var(--shadow-lg)' }}>
-
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'1.25rem 1.5rem', borderBottom:'1px solid var(--outline-var)' }}>
+      <div style={{ background:'var(--surface-lowest)', borderRadius:20, width:'100%', maxWidth:840, maxHeight:'90vh', display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 24px 48px rgba(0,0,0,.18)' }}>
+        {/* header */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'1.1rem 1.5rem', borderBottom:'1px solid var(--outline-var)' }}>
           <div>
-            <h2 style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'1.1rem' }}>Compare Phones</h2>
-            <p style={{ fontSize:'.78rem', color:'var(--on-surface-var)', marginTop:'.15rem' }}>
+            <h2 style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'1.05rem' }}>Compare Phones</h2>
+            <p style={{ fontSize:'.75rem', color:'var(--on-surface-var)', marginTop:'.1rem' }}>
               <span style={{ color:'var(--primary)', fontWeight:700 }}>{basePhone.name}</span> — pick up to 2 more
             </p>
           </div>
           <div style={{ display:'flex', gap:'.5rem', alignItems:'center' }}>
             {selected.length > 0 && (
-              <button onClick={() => setView(v => v==='pick'?'table':'pick')} className={`btn btn-sm ${view==='table'?'btn-blue':'btn-outline-blue'}`}>
-                {view==='table' ? '← Pick Phones' : `Compare ${list.length} →`}
+              <button onClick={() => setView(v => v==='pick'?'table':'pick')}
+                className={`btn btn-sm ${view==='table'?'btn-blue':'btn-outline-blue'}`}>
+                {view==='table' ? '← Pick' : `Compare ${compareList.length} →`}
               </button>
             )}
-            <button onClick={onClose} style={{ width:34, height:34, borderRadius:8, background:'var(--surface-low)', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <button onClick={onClose} style={{ width:32, height:32, borderRadius:8, background:'var(--surface-low)', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
               <span className="material-symbols-outlined" style={{ fontSize:18 }}>close</span>
             </button>
           </div>
         </div>
 
+        {/* selected pills */}
         {selected.length > 0 && view==='pick' && (
-          <div style={{ padding:'.6rem 1.5rem', borderBottom:'1px solid var(--outline-var)', display:'flex', gap:'.4rem', flexWrap:'wrap', background:'var(--surface-low)' }}>
-            <span style={{ display:'inline-flex', alignItems:'center', gap:'.3rem', padding:'.2rem .65rem', background:'var(--primary)', borderRadius:999, fontSize:'.72rem', fontWeight:700, color:'#fff' }}>{basePhone.name}</span>
+          <div style={{ padding:'.55rem 1.5rem', borderBottom:'1px solid var(--outline-var)', display:'flex', gap:'.4rem', flexWrap:'wrap', background:'var(--surface-low)' }}>
+            <span style={{ display:'inline-flex', alignItems:'center', gap:'.3rem', padding:'.18rem .6rem', background:'var(--primary)', borderRadius:999, fontSize:'.7rem', fontWeight:700, color:'#fff' }}>{basePhone.name}</span>
             {selected.map(p => (
-              <button key={p.slug} onClick={() => toggle(p)} style={{ display:'inline-flex', alignItems:'center', gap:'.3rem', padding:'.2rem .65rem', background:'var(--primary-fixed)', border:'none', borderRadius:999, fontSize:'.72rem', fontWeight:600, color:'var(--on-primary-fixed)', cursor:'pointer' }}>
-                {p.name} <span style={{ fontSize:13 }}>✕</span>
+              <button key={p.slug} onClick={() => toggle(p)} style={{ display:'inline-flex', alignItems:'center', gap:'.3rem', padding:'.18rem .6rem', background:'var(--primary-fixed)', border:'none', borderRadius:999, fontSize:'.7rem', fontWeight:600, color:'var(--on-primary-fixed)', cursor:'pointer' }}>
+                {p.name} <span>✕</span>
               </button>
             ))}
           </div>
         )}
 
+        {/* pick grid */}
         {view==='pick' && (
-          <div style={{ flex:1, overflowY:'auto', padding:'1.25rem 1.5rem' }}>
+          <div style={{ flex:1, overflowY:'auto', padding:'1.1rem 1.5rem' }}>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search phones…" style={{ marginBottom:'1rem', borderRadius:999 }} />
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'.75rem' }} className="modal-g">
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'.65rem' }} className="modal-g">
               {filtered.map(p => {
                 const sel = !!selected.find(s => s.slug === p.slug)
                 const full= selected.length >= 2 && !sel
                 return (
-                  <button key={p.slug} onClick={() => !full && toggle(p)} style={{
-                    display:'flex', alignItems:'center', gap:'.6rem',
-                    padding:'.65rem .75rem', border:`2px solid ${sel?'var(--primary)':'var(--outline-var)'}`,
-                    borderRadius:12, background: sel?'var(--primary-fixed)':'var(--surface-low)',
-                    cursor: full?'not-allowed':'pointer', opacity: full?.45:1,
-                    transition:'all .12s', textAlign:'left',
-                  }}>
-                    <div style={{ width:36, height:36, background:'var(--surface-mid)', borderRadius:8, overflow:'hidden', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <button key={p.slug} onClick={() => !full && toggle(p)} style={{ display:'flex', alignItems:'center', gap:'.55rem', padding:'.6rem .7rem', border:`2px solid ${sel?'var(--primary)':'var(--outline-var)'}`, borderRadius:12, background:sel?'var(--primary-fixed)':'var(--surface-low)', cursor:full?'not-allowed':'pointer', opacity:full?.45:1, transition:'all .12s', textAlign:'left' }}>
+                    <div style={{ width:34, height:34, background:'var(--surface-mid)', borderRadius:7, overflow:'hidden', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
                       {p.images?.[0] ? <img src={p.images[0]} alt="" style={{ width:'100%', height:'100%', objectFit:'contain' }} />
-                        : <span className="material-symbols-outlined" style={{ fontSize:18, opacity:.3 }}>smartphone</span>}
+                        : <span className="material-symbols-outlined" style={{ fontSize:16, opacity:.3 }}>smartphone</span>}
                     </div>
                     <div style={{ minWidth:0, flex:1 }}>
-                      <p style={{ fontFamily:'var(--font-display)', fontWeight:600, fontSize:'.82rem', lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color: sel?'var(--primary)':'var(--on-surface)' }}>{p.name}</p>
-                      <p style={{ fontSize:'.7rem', color:'var(--on-surface-var)', marginTop:'.1rem' }}>{formatPrice(p.price)}</p>
+                      <p style={{ fontFamily:'var(--font-display)', fontWeight:600, fontSize:'.8rem', lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:sel?'var(--primary)':'var(--on-surface)' }}>{p.name}</p>
+                      <p style={{ fontSize:'.68rem', color:'var(--on-surface-var)', marginTop:'.08rem' }}>{formatPrice(p.price)}</p>
                     </div>
-                    {sel && <span className="material-symbols-outlined" style={{ color:'var(--primary)', fontSize:18, flexShrink:0 }}>check_circle</span>}
+                    {sel && <span className="material-symbols-outlined" style={{ color:'var(--primary)', fontSize:16, flexShrink:0, fontVariationSettings:"'FILL' 1" }}>check_circle</span>}
                   </button>
                 )
               })}
@@ -100,27 +98,28 @@ function CompareModal({ basePhone, allPhones, onClose }) {
           </div>
         )}
 
+        {/* compare table */}
         {view==='table' && (
           <div style={{ flex:1, overflowY:'auto' }}>
             <div style={{ overflowX:'auto' }}>
-              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'.82rem', minWidth:480 }}>
+              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'.82rem', minWidth:460 }}>
                 <thead>
                   <tr style={{ background:'var(--primary)' }}>
-                    <th style={{ padding:'.65rem 1rem', textAlign:'left', color:'#fff', fontWeight:700, fontSize:'.7rem', textTransform:'uppercase', letterSpacing:'.07em', width:110 }}>Feature</th>
-                    {list.map(p => (
-                      <th key={p.slug} style={{ padding:'.65rem 1rem', textAlign:'left', color:'#fff', fontWeight:700, borderLeft:'1px solid rgba(255,255,255,.2)' }}>
-                        <div style={{ fontFamily:'var(--font-display)', fontSize:'.9rem' }}>{p.name}</div>
-                        {p.slug === basePhone.slug && <div style={{ fontSize:'.62rem', opacity:.75, marginTop:.1+'rem' }}>This phone</div>}
+                    <th style={{ padding:'.6rem 1rem', textAlign:'left', color:'#fff', fontWeight:700, fontSize:'.68rem', textTransform:'uppercase', letterSpacing:'.07em', width:100 }}>Feature</th>
+                    {compareList.map(p => (
+                      <th key={p.slug} style={{ padding:'.6rem 1rem', textAlign:'left', color:'#fff', fontWeight:700, borderLeft:'1px solid rgba(255,255,255,.2)' }}>
+                        <div style={{ fontFamily:'var(--font-display)', fontSize:'.88rem' }}>{p.name}</div>
+                        {p.slug===basePhone.slug && <div style={{ fontSize:'.6rem', opacity:.75, marginTop:2 }}>This phone</div>}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {ROWS.map(({ label, fn }, i) => (
-                    <tr key={label} style={{ borderBottom:'1px solid var(--outline-var)', background: i%2===0?'var(--surface-lowest)':'var(--surface-low)' }}>
-                      <td style={{ padding:'.55rem 1rem', fontWeight:600, fontSize:'.7rem', textTransform:'uppercase', letterSpacing:'.06em', color:'var(--on-surface-var)', whiteSpace:'nowrap' }}>{label}</td>
-                      {list.map(p => (
-                        <td key={p.slug} style={{ padding:'.55rem 1rem', color:'var(--on-surface)', borderLeft:'1px solid var(--outline-var)', fontWeight: p.slug===basePhone.slug?600:400 }}>{fn(p)}</td>
+                  {COMPARE_ROWS.map(({ label, fn }, i) => (
+                    <tr key={label} style={{ borderBottom:'1px solid var(--outline-var)', background:i%2===0?'var(--surface-lowest)':'var(--surface-low)' }}>
+                      <td style={{ padding:'.5rem 1rem', fontWeight:600, fontSize:'.68rem', textTransform:'uppercase', letterSpacing:'.05em', color:'var(--on-surface-var)', whiteSpace:'nowrap' }}>{label}</td>
+                      {compareList.map(p => (
+                        <td key={p.slug} style={{ padding:'.5rem 1rem', color:'var(--on-surface)', borderLeft:'1px solid var(--outline-var)', fontWeight:p.slug===basePhone.slug?600:400 }}>{fn(p)}</td>
                       ))}
                     </tr>
                   ))}
@@ -130,45 +129,44 @@ function CompareModal({ basePhone, allPhones, onClose }) {
           </div>
         )}
 
-        <div style={{ padding:'.75rem 1.5rem', borderTop:'1px solid var(--outline-var)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <p style={{ fontSize:'.72rem', color:'var(--on-surface-var)' }}>
-            {selected.length === 0 ? 'Select at least 1 phone' : `Comparing ${list.length} phones`}
-          </p>
-          <div style={{ display:'flex', gap:'.5rem' }}>
+        <div style={{ padding:'.65rem 1.5rem', borderTop:'1px solid var(--outline-var)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <p style={{ fontSize:'.72rem', color:'var(--on-surface-var)' }}>{selected.length===0?'Select at least 1 phone':`Comparing ${compareList.length} phones`}</p>
+          <div style={{ display:'flex', gap:'.4rem' }}>
             {selected.length > 0 && view==='pick' && <button onClick={() => setView('table')} className="btn btn-blue btn-sm">View Table →</button>}
             {view==='table' && <button onClick={() => setView('pick')} className="btn btn-ghost btn-sm">← Change</button>}
             <button onClick={onClose} className="btn btn-ghost btn-sm">Close</button>
           </div>
         </div>
       </div>
-      <style>{`@media(max-width:600px){.modal-g{grid-template-columns:1fr 1fr!important}}`}</style>
+      <style>{`@media(max-width:580px){.modal-g{grid-template-columns:1fr 1fr!important}}`}</style>
     </div>
   )
 }
 
+/* ── Main page ──────────────────────────────────── */
 export default function PhoneDetail() {
   const { slug } = useParams()
   const [phone,    setPhone]    = useState(null)
   const [rel,      setRel]      = useState([])
   const [allPhones,setAllPhones]= useState([])
   const [load,     setLoad]     = useState(true)
-  const [img,      setImg]      = useState(0)
+  const [imgIdx,   setImgIdx]   = useState(0)
   const [comparing,setComparing]= useState(false)
 
   useEffect(() => {
-    setLoad(true); setImg(0); setComparing(false)
+    setLoad(true); setImgIdx(0); setComparing(false)
     getPhoneBySlug(slug).then(d => {
       setPhone(d); setLoad(false)
       if (d) getAllPhones().then(all => {
         setAllPhones(all)
-        setRel(all.filter(p => p.brand === d.brand && p.slug !== slug && p.available).slice(0,4))
+        setRel(all.filter(p => p.brand===d.brand && p.slug!==slug && p.available).slice(0,6))
       })
     })
   }, [slug])
 
   if (load) return (
     <div className="pt" style={{ minHeight:'80vh', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ width:32, height:32, border:'3px solid var(--primary)', borderTopColor:'transparent', borderRadius:'50%', animation:'spin .7s linear infinite' }} />
+      <div style={{ width:30, height:30, border:'2.5px solid var(--primary)', borderTopColor:'transparent', borderRadius:'50%', animation:'spin .7s linear infinite' }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
@@ -181,15 +179,20 @@ export default function PhoneDetail() {
   )
 
   const sold   = !phone.available
-  const images = phone.images || []
-  const SPECS  = phone.specs ? [
-    { icon:'tv', label:'Display',   val:phone.specs.display },
-    { icon:'memory', label:'Processor', val:phone.specs.processor },
-    { icon:'photo_camera', label:'Camera', val:phone.specs.camera },
-    { icon:'battery_std', label:'Battery', val:phone.specs.battery },
-    { icon:'storage', label:'RAM', val:phone.specs.ram },
-    { icon:'storage', label:'Storage', val:phone.storage },
-  ].filter(s => s.val) : []
+  const images = phone.images?.length ? phone.images : []
+
+  /* Merged spec rows — description + specs together, no price/status/condition */
+  const specRows = [
+    { label:'Brand',     value: phone.brand },
+    { label:'Model',     value: phone.name },
+    { label:'Storage',   value: phone.storage },
+    { label:'Color',     value: phone.color },
+    { label:'Network',   value: phone.network },
+    { label:'Display',   value: phone.specs?.display },
+    { label:'Processor', value: phone.specs?.processor },
+    { label:'Camera',    value: phone.specs?.camera },
+    { label:'Battery',   value: phone.specs?.battery },
+  ].filter(r => r.value)
 
   return (
     <div className="pt" style={{ paddingBottom:'5rem', background:'var(--bg)' }}>
@@ -197,136 +200,87 @@ export default function PhoneDetail() {
 
       {/* Breadcrumb */}
       <div style={{ background:'var(--surface-low)', borderBottom:'1px solid var(--outline-var)' }}>
-        <div className="W" style={{ padding:'.7rem 2.5rem', display:'flex', alignItems:'center', gap:'.4rem', fontSize:'.78rem', color:'var(--on-surface-var)' }}>
-          {[['/', 'Home'], ['/shop', 'Shop']].map(([to, l], i) => (
-            <span key={to} style={{ display:'flex', alignItems:'center', gap:'.4rem' }}>
-              {i > 0 && <span>/</span>}
-              <Link to={to} style={{ color:'var(--on-surface-var)', textDecoration:'none', transition:'color .12s' }}
-                onMouseEnter={e => e.currentTarget.style.color='var(--primary)'}
-                onMouseLeave={e => e.currentTarget.style.color='var(--on-surface-var)'}>{l}</Link>
-            </span>
-          ))}
+        <div style={{ maxWidth:1280, margin:'0 auto', padding:'.65rem 2.5rem', display:'flex', alignItems:'center', gap:'.4rem', fontSize:'.78rem', color:'var(--on-surface-var)' }}>
+          <Link to="/"    style={{ color:'var(--on-surface-var)', textDecoration:'none' }} onMouseEnter={e=>e.target.style.color='var(--primary)'} onMouseLeave={e=>e.target.style.color='var(--on-surface-var)'}>Home</Link>
+          <span>/</span>
+          <Link to="/shop" style={{ color:'var(--on-surface-var)', textDecoration:'none' }} onMouseEnter={e=>e.target.style.color='var(--primary)'} onMouseLeave={e=>e.target.style.color='var(--on-surface-var)'}>Shop</Link>
           <span>/</span>
           <span style={{ color:'var(--on-surface)' }}>{phone.name}</span>
         </div>
       </div>
 
-      <div className="W" style={{ paddingTop:'2.5rem' }}>
-        <div style={{ display:'grid', gridTemplateColumns:'7fr 5fr', gap:'3.5rem', marginBottom:'3rem', alignItems:'start' }} className="det-g">
+      <div style={{ maxWidth:1280, margin:'0 auto', padding:'2rem 2.5rem' }}>
 
-          {/* ── GALLERY ───────────────────────────────────── */}
-          <div style={{ display:'flex', gap:'1.25rem' }} className="gal-g">
-            {/* Thumbnails — desktop side, mobile bottom */}
-            <div style={{ display:'flex', flexDirection:'column', gap:'.75rem', flexShrink:0 }} className="thumbs-desk">
-              {images.map((src,i) => (
-                <button key={i} onClick={() => setImg(i)} style={{ width:70, height:88, borderRadius:10, border:`2px solid ${i===img?'var(--primary)':'var(--outline-var)'}`, overflow:'hidden', background:'var(--surface-low)', cursor:'pointer', padding:0, transition:'border-color .12s' }}>
-                  <img src={src} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                </button>
-              ))}
-            </div>
+        {/*
+          ══ MAIN GRID ══════════════════════════════════
+          LEFT:  image + thumbnails + all action buttons
+          RIGHT: name + merged full specs table
+        */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1.35fr', gap:'3rem', alignItems:'start', marginBottom:'2.5rem' }} className="det-g">
 
-            {/* Main image */}
-            <div style={{ flex:1, aspectRatio:'4/5', background:'var(--surface-low)', borderRadius:20, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', position:'relative' }}>
-              {images[img]
-                ? <img src={images[img]} alt={phone.name} style={{ width:'85%', height:'85%', objectFit:'contain', transition:'transform .6s' }}
-                    className="main-img" />
-                : <span className="material-symbols-outlined" style={{ fontSize:80, opacity:.15, color:'var(--primary)' }}>smartphone</span>
+          {/* ── LEFT: gallery + actions ─────────────────── */}
+          <div>
+            {/* Main image — slightly smaller via maxHeight */}
+            <div style={{ background:'var(--surface-low)', borderRadius:18, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', position:'relative', marginBottom:'.65rem', aspectRatio:'4/5' }}>
+              {images[imgIdx]
+                ? <img src={images[imgIdx]} alt={phone.name} style={{ width:'90%', height:'90%', objectFit:'contain', transition:'transform .5s' }}
+                    onMouseEnter={e=>e.currentTarget.style.transform='scale(1.04)'}
+                    onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'} />
+                : <span className="material-symbols-outlined" style={{ fontSize:72, opacity:.12, color:'var(--primary)' }}>smartphone</span>
               }
-              {/* Condition badge */}
-              <div style={{ position:'absolute', top:14, right:14 }}>
-                <span style={{
-                  padding:'.28rem .8rem', borderRadius:999,
-                  fontSize:'.72rem', fontWeight:700,
-                  background: phone.condition==='London Used' ? 'var(--tertiary-fixed)' : phone.condition==='Brand New' ? 'var(--st-new-bg)' : 'var(--secondary-container)',
-                  color: phone.condition==='London Used' ? 'var(--on-tertiary-fixed)' : phone.condition==='Brand New' ? 'var(--st-new-ink)' : 'var(--on-secondary-container)',
-                  fontFamily:'var(--font-body)', letterSpacing:'.04em', textTransform:'uppercase',
-                }}>
+              {/* Condition pill */}
+              <div style={{ position:'absolute', top:12, right:12 }}>
+                <span style={{ padding:'.22rem .75rem', borderRadius:999, fontSize:'.68rem', fontWeight:700, letterSpacing:'.04em', textTransform:'uppercase', fontFamily:'var(--font-body)', background: phone.condition==='Brand New' ? 'var(--st-new-bg)' : phone.condition==='London Used' ? 'var(--tertiary-fixed)' : 'var(--secondary-container)', color: phone.condition==='Brand New' ? 'var(--st-new-ink)' : phone.condition==='London Used' ? 'var(--on-tertiary-fixed)' : 'var(--on-secondary-container)' }}>
                   {phone.condition}
                 </span>
               </div>
             </div>
 
-            {/* Thumbnails — mobile (row at bottom) */}
+            {/* Thumbnails */}
             {images.length > 1 && (
-              <div style={{ display:'none' }} className="thumbs-mob">
-                <div style={{ display:'flex', gap:'.5rem', flexWrap:'wrap', marginTop:'.75rem' }}>
-                  {images.map((src,i) => (
-                    <button key={i} onClick={() => setImg(i)} style={{ width:56, height:68, borderRadius:8, border:`2px solid ${i===img?'var(--primary)':'var(--outline-var)'}`, overflow:'hidden', background:'var(--surface-low)', cursor:'pointer', padding:0 }}>
-                      <img src={src} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                    </button>
-                  ))}
-                </div>
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:'1.25rem' }}>
+                {images.map((src,i) => (
+                  <button key={i} onClick={() => setImgIdx(i)} style={{ width:54, height:68, padding:0, borderRadius:10, overflow:'hidden', border:`2px solid ${i===imgIdx?'var(--primary)':'var(--outline-var)'}`, background:'var(--surface-low)', cursor:'pointer', transition:'border-color .12s', flexShrink:0 }}>
+                    <img src={src} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  </button>
+                ))}
               </div>
             )}
-          </div>
 
-          {/* ── INFO + PURCHASE ────────────────────────────── */}
-          <div style={{ display:'flex', flexDirection:'column', gap:'1.5rem' }}>
-            {/* Brand + name */}
-            <div>
-              <span style={{ fontFamily:'var(--font-body)', fontSize:'.7rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'.12em', color:'var(--primary)', display:'block', marginBottom:'.4rem' }}>
-                Pixel Authority Exclusive
-              </span>
-              <h1 style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'clamp(1.4rem,2.5vw,1.9rem)', letterSpacing:'-.02em', lineHeight:1.1, marginBottom:'.6rem' }}>{phone.name}</h1>
-              {/* Price */}
-              <div style={{ display:'flex', alignItems:'center', gap:'1rem', marginBottom:'.25rem' }}>
-                <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'1.8rem', color:'var(--primary)', letterSpacing:'-.02em' }}>{formatPrice(phone.price)}</span>
-              </div>
-            </div>
-
-            {/* Condition + battery panel */}
-            <div style={{ background:'var(--surface-low)', borderRadius:14, padding:'1.1rem 1.25rem', display:'flex', flexDirection:'column', gap:'.85rem', border:'1px solid rgba(193,198,214,.3)' }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <span style={{ fontFamily:'var(--font-body)', fontSize:'.82rem', color:'var(--on-surface-var)', fontWeight:500 }}>Condition Status</span>
-                <span style={{ background:'var(--secondary-container)', color:'var(--on-secondary-container)', padding:'.22rem .7rem', borderRadius:8, fontFamily:'var(--font-body)', fontSize:'.72rem', fontWeight:600 }}>
-                  {phone.condition}
+            {/* ── Action buttons BELOW image ─────────────── */}
+            <div style={{ display:'flex', flexDirection:'column', gap:'.6rem' }}>
+              {/* Availability */}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'.6rem .85rem', background:'var(--surface-low)', borderRadius:10, border:'1px solid var(--outline-var)' }}>
+                <span style={{ fontSize:'.8rem', color:'var(--on-surface-var)', fontWeight:500 }}>Availability</span>
+                <span style={{ display:'flex', alignItems:'center', gap:'.3rem', fontWeight:700, fontSize:'.82rem', color: phone.available ? 'var(--green)' : 'var(--error)' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize:15, fontVariationSettings:"'FILL' 1" }}>{phone.available ? 'check_circle' : 'cancel'}</span>
+                  {phone.available ? 'In Stock' : 'Sold'}
                 </span>
               </div>
-              {phone.available
-                ? <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                    <span style={{ fontFamily:'var(--font-body)', fontSize:'.82rem', color:'var(--on-surface-var)', fontWeight:500 }}>Availability</span>
-                    <span style={{ color:'var(--green)', fontWeight:700, fontSize:'.82rem', display:'flex', alignItems:'center', gap:'.3rem' }}>
-                      <span className="material-symbols-outlined" style={{ fontSize:16, fontVariationSettings:"'FILL' 1" }}>check_circle</span>
-                      In Stock
-                    </span>
-                  </div>
-                : <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                    <span style={{ fontFamily:'var(--font-body)', fontSize:'.82rem', color:'var(--on-surface-var)', fontWeight:500 }}>Availability</span>
-                    <span style={{ color:'var(--error)', fontWeight:700, fontSize:'.82rem' }}>Sold</span>
-                  </div>
-              }
-            </div>
 
-            {/* CTAs */}
-            <div style={{ display:'flex', flexDirection:'column', gap:'.75rem' }}>
               {phone.available ? (
                 <>
+                  {/* WhatsApp — primary */}
                   <a href={buildPhoneWhatsAppUrl(phone)} target="_blank" rel="noopener noreferrer"
-                    style={{
-                      display:'flex', alignItems:'center', justifyContent:'center', gap:'.5rem',
-                      background:'var(--green-wa)', color:'#fff',
-                      height:56, borderRadius:14,
-                      fontFamily:'var(--font-display)', fontWeight:700, fontSize:'1.05rem',
-                      textDecoration:'none', transition:'transform .14s, box-shadow .14s',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(37,211,102,.4)' }}
-                    onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='none' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize:22, fontVariationSettings:"'FILL' 1" }}>chat</span>
-                    WhatsApp to Buy
+                    style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'.5rem', background:'var(--green-wa)', color:'#fff', height:52, borderRadius:12, fontFamily:'var(--font-display)', fontWeight:700, fontSize:'1rem', textDecoration:'none', transition:'transform .14s, box-shadow .14s' }}
+                    onMouseEnter={e=>{ e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(37,211,102,.4)' }}
+                    onMouseLeave={e=>{ e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='none' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize:20, fontVariationSettings:"'FILL' 1" }}>chat</span>
+                    Buy
                   </a>
-                  {/* Secondary row */}
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'.65rem' }}>
+                  {/* Live Video + Compare */}
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'.5rem' }}>
                     <a href={buildLiveVideoUrl(phone)} target="_blank" rel="noopener noreferrer"
-                      style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'.4rem', height:48, border:'2px solid var(--primary)', borderRadius:12, color:'var(--primary)', fontFamily:'var(--font-body)', fontWeight:600, fontSize:'.82rem', textDecoration:'none', transition:'background .14s', background:'transparent' }}
-                      onMouseEnter={e => e.currentTarget.style.background='var(--blue-tint)'}
-                      onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                      style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'.4rem', height:44, border:'2px solid var(--outline-var)', borderRadius:10, color:'var(--on-surface)', fontFamily:'var(--font-body)', fontWeight:600, fontSize:'.82rem', textDecoration:'none', transition:'border-color .14s', background:'transparent' }}
+                      onMouseEnter={e=>e.currentTarget.style.borderColor='var(--primary)'}
+                      onMouseLeave={e=>e.currentTarget.style.borderColor='var(--outline-var)'}>
                       <span className="material-symbols-outlined" style={{ fontSize:16 }}>videocam</span>
                       Live Video
                     </a>
                     <button onClick={() => setComparing(true)}
-                      style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'.4rem', height:48, border:'2px solid var(--outline-var)', borderRadius:12, color:'var(--on-surface)', fontFamily:'var(--font-body)', fontWeight:600, fontSize:'.82rem', background:'transparent', cursor:'pointer', transition:'border-color .14s' }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor='var(--primary)'}
-                      onMouseLeave={e => e.currentTarget.style.borderColor='var(--outline-var)'}>
+                      style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'.4rem', height:44, border:'2px solid var(--outline-var)', borderRadius:10, color:'var(--on-surface)', fontFamily:'var(--font-body)', fontWeight:600, fontSize:'.82rem', background:'transparent', cursor:'pointer', transition:'border-color .14s' }}
+                      onMouseEnter={e=>e.currentTarget.style.borderColor='var(--primary)'}
+                      onMouseLeave={e=>e.currentTarget.style.borderColor='var(--outline-var)'}>
                       <span className="material-symbols-outlined" style={{ fontSize:16 }}>compare</span>
                       Compare
                     </button>
@@ -334,53 +288,84 @@ export default function PhoneDetail() {
                 </>
               ) : (
                 <div style={{ textAlign:'center', padding:'1rem', background:'var(--error-container)', borderRadius:12 }}>
-                  <p style={{ color:'var(--on-error-container)', fontWeight:600, fontSize:'.875rem', marginBottom:'.35rem' }}>This phone has been sold.</p>
+                  <p style={{ color:'var(--on-error-container)', fontWeight:600, fontSize:'.875rem', marginBottom:'.3rem' }}>This phone has been sold.</p>
                   <Link to="/shop" style={{ color:'var(--primary)', fontSize:'.8rem', fontWeight:600, textDecoration:'none' }}>Browse available phones →</Link>
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Bento specs grid */}
-            {SPECS.length > 0 && (
-              <div>
-                <p style={{ fontFamily:'var(--font-body)', fontSize:'.7rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'.1em', color:'var(--on-surface-var)', marginBottom:'.75rem' }}>Specifications</p>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'.65rem' }}>
-                  {SPECS.slice(0,4).map(({ icon, label, val }) => (
-                    <div key={label} style={{ background:'var(--surface-high)', borderRadius:12, padding:'.85rem', border:'1px solid rgba(193,198,214,.2)', transition:'transform .2s var(--ease-bounce)' }}
-                      onMouseEnter={e => e.currentTarget.style.transform='translateY(-4px)'}
-                      onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
-                      <span className="material-symbols-outlined" style={{ color:'var(--primary)', fontSize:20, display:'block', marginBottom:'.35rem' }}>{icon}</span>
-                      <p style={{ fontFamily:'var(--font-body)', fontSize:'.65rem', color:'var(--on-surface-var)', marginBottom:'.2rem', opacity:.8 }}>{label}</p>
-                      <p style={{ fontFamily:'var(--font-body)', fontWeight:600, fontSize:'.82rem', color:'var(--on-surface)' }}>{val}</p>
-                    </div>
-                  ))}
+          {/* ── RIGHT: name + full merged specs ─────────── */}
+          <div>
+            {/* Name only — no extra sentence above */}
+            <h1 style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'clamp(1.5rem,2.5vw,2rem)', letterSpacing:'-.02em', lineHeight:1.1, marginBottom:'1.5rem' }}>
+              {phone.name}
+            </h1>
+
+            {/* Price — shown here with the name */}
+            <div style={{ marginBottom:'1.5rem' }}>
+              <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'1.85rem', color:'var(--primary)', letterSpacing:'-.02em' }}>
+                {formatPrice(phone.price)}
+              </span>
+            </div>
+
+            {/* Merged specs table (description + specs together) */}
+            {specRows.length > 0 && (
+              <div style={{ border:'1px solid var(--outline-var)', borderRadius:14, overflow:'hidden', marginBottom:'1.5rem' }}>
+                <div style={{ padding:'.55rem .9rem', background:'var(--primary)', display:'flex', alignItems:'center', gap:'.5rem' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize:16, color:'rgba(255,255,255,.85)' }}>smartphone</span>
+                  <span style={{ fontFamily:'var(--font-body)', fontSize:'.68rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'.1em', color:'#fff' }}>Full Specifications</span>
                 </div>
+                {specRows.map(({ label, value }, i) => (
+                  <div key={label} style={{ display:'flex', borderBottom: i < specRows.length-1 ? '1px solid var(--outline-var)' : 'none', background: i%2===0 ? 'var(--surface-lowest)' : 'var(--surface-low)' }}>
+                    <div style={{ width:110, flexShrink:0, padding:'.62rem .9rem', borderRight:'1px solid var(--outline-var)' }}>
+                      <span style={{ fontFamily:'var(--font-body)', fontSize:'.7rem', fontWeight:700, color:'var(--on-surface-var)', textTransform:'uppercase', letterSpacing:'.06em' }}>{label}</span>
+                    </div>
+                    <div style={{ padding:'.62rem .9rem', flex:1 }}>
+                      <span style={{ fontFamily:'var(--font-body)', fontSize:'.875rem', color:'var(--on-surface)', fontWeight:500 }}>{value}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
+
+            {/* Best For tags */}
+            <div style={{ marginBottom:'1rem' }}>
+              <p style={{ fontFamily:'var(--font-body)', fontSize:'.68rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'.1em', color:'var(--on-surface-var)', marginBottom:'.55rem' }}>Best For</p>
+              <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap' }}>
+                {(phone.brand==='Google Pixel'
+                  ? ['Photography','Pure Android','Long-term value','AI features']
+                  : phone.brand==='iPhone'
+                  ? ['iOS ecosystem','Premium build','Resale value']
+                  : ['Performance','Everyday use','Value']).map(t => (
+                  <span key={t} className="st st-blue">{t}</span>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* ── NOVA TRANSPARENCY SECTION ─────────────────── */}
-        <div style={{ background:'var(--surface-low)', borderRadius:20, padding:'2.5rem', marginBottom:'3rem', border:'1px solid var(--outline-var)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'1rem', marginBottom:'1.25rem' }}>
-            <span className="material-symbols-outlined" style={{ color:'var(--tertiary)', fontSize:36, fontVariationSettings:"'FILL' 1" }}>verified</span>
-            <h2 style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'1.2rem' }}>Nova Transparency Promise</h2>
+        {/* ══ NOVA TRANSPARENCY PROMISE ══════════════════ */}
+        <div style={{ background:'var(--surface-low)', borderRadius:20, padding:'2rem 2.25rem', marginBottom:'3rem', border:'1px solid var(--outline-var)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'.85rem', marginBottom:'1.1rem' }}>
+            <span className="material-symbols-outlined" style={{ color:'var(--tertiary)', fontSize:32, fontVariationSettings:"'FILL' 1" }}>verified</span>
+            <h2 style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'1.1rem' }}>Nova Transparency Promise</h2>
           </div>
-          <p style={{ color:'var(--on-surface-var)', fontSize:'.9rem', lineHeight:1.75, marginBottom:'1.25rem', maxWidth:640 }}>
-            This unit is <strong style={{ color:'var(--on-surface)' }}>{phone.condition}</strong>.
-            {phone.condition === 'London Used' && ' It has undergone a full diagnostic check before sale — screens, cameras, battery, and all hardware verified.'}
-            {phone.condition === 'Brand New' && ' Sealed, untouched, with full original warranty.'}
-            {phone.condition === 'Nigerian Used' && ' Inspected and tested by our team before listing.'}
+          <p style={{ color:'var(--on-surface-var)', fontSize:'.875rem', lineHeight:1.75, marginBottom:'1.25rem', maxWidth:640 }}>
+            This unit is{' '}<strong style={{ color:'var(--on-surface)' }}>{phone.condition}</strong>.{' '}
+            {phone.condition==='London Used' && 'It has been fully tested and inspected — screens, cameras, battery, and all internals verified before sale.'}
+            {phone.condition==='Brand New' && 'Sealed, untouched, with full original manufacturer warranty.'}
+            {phone.condition==='Nigerian Used' && 'Inspected and tested by our team before listing.'}
           </p>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'.75rem' }} className="trust-g">
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'.65rem' }} className="trust-g">
             {[
-              { icon:'check_circle', title:'Authentic Sourcing',   desc:'Directly sourced from verified suppliers.' },
-              { icon:'check_circle', title:'Hardware Guaranteed', desc:'Original screens and internals. No modifications.' },
-              { icon:'check_circle', title:'Warranty Included',    desc:'All phones come with our full warranty.' },
-              { icon:'check_circle', title:'Returns Accepted',     desc:'Not satisfied? We accept returns.' },
+              { icon:'check_circle', title:'Authentic Sourcing',  desc:'Directly sourced from verified suppliers.' },
+              { icon:'check_circle', title:'Hardware Verified',   desc:'Original screens and internals. No modifications.' },
+              { icon:'check_circle', title:'Warranty Included',   desc:'All phones come with our full warranty.' },
+              { icon:'check_circle', title:'Returns Accepted',    desc:'Not satisfied? We accept returns.' },
             ].map(({ icon, title, desc }) => (
-              <div key={title} style={{ display:'flex', gap:'.75rem', alignItems:'flex-start', padding:'.85rem', background:'var(--surface-lowest)', borderRadius:12, border:'1px solid rgba(255,255,255,.5)' }}>
-                <span className="material-symbols-outlined" style={{ color:'var(--primary)', fontSize:20, flexShrink:0, marginTop:2, fontVariationSettings:"'FILL' 1" }}>{icon}</span>
+              <div key={title} style={{ display:'flex', gap:'.65rem', alignItems:'flex-start', padding:'.8rem', background:'var(--surface-lowest)', borderRadius:12 }}>
+                <span className="material-symbols-outlined" style={{ color:'var(--primary)', fontSize:18, flexShrink:0, marginTop:2, fontVariationSettings:"'FILL' 1" }}>{icon}</span>
                 <div>
                   <p style={{ fontWeight:600, fontSize:'.82rem', marginBottom:'.18rem' }}>{title}</p>
                   <p style={{ color:'var(--on-surface-var)', fontSize:'.75rem', lineHeight:1.5 }}>{desc}</p>
@@ -390,71 +375,17 @@ export default function PhoneDetail() {
           </div>
         </div>
 
-        {/* ── PHONE DESCRIPTION ─────────────────────────── */}
-        <div style={{ marginBottom:'3rem', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2.5rem' }} className="mid-g">
-          <div>
-            <p style={{ fontFamily:'var(--font-body)', fontSize:'.7rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'.1em', color:'var(--on-surface-var)', marginBottom:'.65rem' }}>Phone Description</p>
-            <div style={{ border:'1px solid var(--outline-var)', borderRadius:12, overflow:'hidden' }}>
-              {[
-                { l:'Brand',     v:phone.brand },
-                { l:'Model',     v:phone.name },
-                { l:'Storage',   v:phone.storage },
-                { l:'Color',     v:phone.color },
-                { l:'Condition', v:phone.condition },
-                { l:'Price',     v:formatPrice(phone.price) },
-                { l:'Status',    v:phone.available?'Available':'Sold' },
-              ].filter(r => r.v).map(({ l, v }, i) => (
-                <div key={l} style={{ display:'flex', borderBottom:'1px solid var(--outline-var)' }}>
-                  <div style={{ width:100, flexShrink:0, padding:'.6rem .85rem', background:'var(--surface-low)', borderRight:'1px solid var(--outline-var)' }}>
-                    <span style={{ fontSize:'.68rem', fontWeight:700, color:'var(--on-surface-var)', textTransform:'uppercase', letterSpacing:'.06em' }}>{l}</span>
-                  </div>
-                  <div style={{ padding:'.6rem .85rem', flex:1 }}>
-                    <span style={{ fontSize:'.875rem', color:'var(--on-surface)', fontWeight: l==='Price'?700:500 }}>{v}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p style={{ fontFamily:'var(--font-body)', fontSize:'.7rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'.1em', color:'var(--on-surface-var)', marginBottom:'.65rem' }}>Best For</p>
-            <div style={{ display:'flex', gap:'.4rem', flexWrap:'wrap', marginBottom:'1.25rem' }}>
-              {(phone.brand === 'Google Pixel'
-                ? ['Photography','Pure Android','Long-term value','AI features']
-                : phone.brand === 'iPhone'
-                ? ['iOS ecosystem','Premium build','Resale value']
-                : ['Performance','Everyday use','Value']).map(t => (
-                <span key={t} className="st st-blue">{t}</span>
-              ))}
-            </div>
-            {/* All specs table */}
-            {phone.specs && Object.values(phone.specs).some(v => v) && (
-              <div>
-                <p style={{ fontFamily:'var(--font-body)', fontSize:'.7rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'.1em', color:'var(--on-surface-var)', marginBottom:'.65rem' }}>Full Specs</p>
-                <div style={{ border:'1px solid var(--outline-var)', borderRadius:12, overflow:'hidden' }}>
-                  {Object.entries(phone.specs).filter(([,v])=>v).map(([k,v],i)=>(
-                    <div key={k} style={{ display:'flex', borderBottom:'1px solid var(--outline-var)', background: i%2===0?'var(--surface-lowest)':'var(--surface-low)' }}>
-                      <div style={{ width:100, flexShrink:0, padding:'.55rem .85rem', borderRight:'1px solid var(--outline-var)' }}>
-                        <span style={{ fontSize:'.68rem', fontWeight:700, color:'var(--on-surface-var)', textTransform:'capitalize', letterSpacing:'.04em' }}>{k}</span>
-                      </div>
-                      <div style={{ padding:'.55rem .85rem', flex:1 }}>
-                        <span style={{ fontSize:'.82rem', color:'var(--on-surface)' }}>{v}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── RELATED — peek slider ─────────────────────── */}
+        {/* ══ RELATED — peek slider ═══════════════════════ */}
         {rel.length > 0 && (
           <div>
-            <h3 style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'1.1rem', marginBottom:'1.25rem' }}>You might also like</h3>
-            <div className="peek-slider">
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.1rem' }}>
+              <h3 style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'1.05rem' }}>You might also like</h3>
+              <Link to="/shop" style={{ color:'var(--primary)', fontSize:'.8rem', fontWeight:600, textDecoration:'none' }}>All phones →</Link>
+            </div>
+            <div style={{ display:'flex', overflowX:'auto', gap:'1rem', paddingBottom:8, scrollSnapType:'x mandatory', msOverflowStyle:'none', scrollbarWidth:'none' }}
+              className="rel-scroll">
               {rel.map(p => (
-                <div key={p.id} style={{ width:260, flexShrink:0 }}>
+                <div key={p.id} style={{ width:180, flexShrink:0, scrollSnapAlign:'start' }}>
                   <ProductCard phone={p} />
                 </div>
               ))}
@@ -465,14 +396,10 @@ export default function PhoneDetail() {
 
       <style>{`
         @media(max-width:768px){
-          .det-g { grid-template-columns:1fr!important; gap:2rem!important; }
-          .gal-g { flex-direction:column-reverse!important; }
-          .thumbs-desk { display:none!important; }
-          .thumbs-mob { display:block!important; }
-          .mid-g { grid-template-columns:1fr!important; gap:1.5rem!important; }
-          .trust-g { grid-template-columns:1fr!important; }
+          .det-g { grid-template-columns:1fr!important; gap:1.75rem!important }
+          .trust-g { grid-template-columns:1fr!important }
         }
-        .main-img:hover { transform:scale(1.04) }
+        .rel-scroll::-webkit-scrollbar { display:none }
       `}</style>
     </div>
   )
