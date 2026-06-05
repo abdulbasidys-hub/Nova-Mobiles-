@@ -1,349 +1,625 @@
 import { useState, useEffect } from 'react'
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../lib/firebase'
-import { getAllPhones, addPhone, updatePhone, deletePhone } from '../lib/phones'
+import {
+  getAllPhones, addPhone, updatePhone, deletePhone,
+  getAllCatalog, addCatalogProduct, updateCatalogProduct, deleteCatalogProduct,
+} from '../lib/phones'
 import { formatPrice } from '../lib/constants'
 
 const DOMAIN = '@novamobilesplus.com'
 
-const DEFAULT_CATALOG = {
-  'Google Pixel': [
-    'Pixel 6a','Pixel 7','Pixel 7a','Pixel 7 Pro',
-    'Pixel 8','Pixel 8a','Pixel 8 Pro',
-    'Pixel 9','Pixel 9 Pro','Pixel 9 Pro XL','Pixel 9 Pro Fold',
-  ],
-  'iPhone': [
-    'iPhone 11','iPhone 11 Pro','iPhone 11 Pro Max',
-    'iPhone 12','iPhone 12 Mini','iPhone 12 Pro','iPhone 12 Pro Max',
-    'iPhone 13','iPhone 13 Mini','iPhone 13 Pro','iPhone 13 Pro Max',
-    'iPhone 14','iPhone 14 Plus','iPhone 14 Pro','iPhone 14 Pro Max',
-    'iPhone 15','iPhone 15 Plus','iPhone 15 Pro','iPhone 15 Pro Max',
-    'iPhone 16','iPhone 16 Plus','iPhone 16 Pro','iPhone 16 Pro Max',
-  ],
-  'Samsung': [
-    'Galaxy S21','Galaxy S21+','Galaxy S21 Ultra',
-    'Galaxy S22','Galaxy S22+','Galaxy S22 Ultra',
-    'Galaxy S23','Galaxy S23+','Galaxy S23 Ultra',
-    'Galaxy S24','Galaxy S24+','Galaxy S24 Ultra',
-    'Galaxy A54','Galaxy A55','Galaxy A35','Galaxy A25',
-    'Galaxy Z Fold 5','Galaxy Z Flip 5',
-  ],
-  'Oppo': [
-    'Reno 8','Reno 8 Pro','Reno 10','Reno 10 Pro',
-    'Reno 11','Reno 11 Pro','Find X6','Find X7','Find X7 Ultra','A78','A98',
-  ],
+/* ── Brand-specific colors ───────────────────────── */
+const BRAND_COLORS = {
+  'Google Pixel': ['Obsidian','Porcelain','Bay','Hazel','Mint','Coral','Lemongrass','Sage','Charcoal','Pearl','Snow','Peony','Matcha','Wintergreen','Mocha'],
+  'iPhone':       ['Black Titanium','White Titanium','Natural Titanium','Desert Titanium','Pink','Black','White','Blue','Green','Yellow','Purple','Red','Starlight','Midnight','Storm Blue','Ultramarine','Teal','Sand'],
+  'Samsung':      ['Phantom Black','Phantom White','Titanium Black','Titanium Gray','Titanium Blue','Titanium Violet','Titanium Yellow','Cream','Lavender','Green','Navy','Lime','Graphite'],
+  'Oppo':         ['Starry Black','Moonlight White','Rock Grey','Dreamy Purple','Emerald Green','Sunset Orange','Gold'],
+}
+const DEFAULT_COLORS = ['Black','White','Silver','Gold','Blue','Other']
+
+
+/* ── Color hex values for swatches ─────────────── */
+const COLOR_HEX = {
+  'Obsidian':'#1A1A1A','Porcelain':'#F5F0E8','Bay':'#7B9EA6','Hazel':'#7B6B3D',
+  'Mint':'#B8D4C8','Coral':'#E86B5F','Lemongrass':'#C8D470','Sage':'#8DAF8A',
+  'Charcoal':'#3C3C3C','Pearl':'#EDE8E0','Snow':'#F0F4F8','Peony':'#D4607A',
+  'Matcha':'#7A9E6E','Mocha':'#8B6F5E','Wintergreen':'#4A7B6F',
+  'Black Titanium':'#2C2C2C','White Titanium':'#F0EDE8','Natural Titanium':'#C4B8A4',
+  'Desert Titanium':'#C9A97A','Pink':'#F4A7B9','Black':'#1A1A1A','White':'#F5F5F5',
+  'Blue':'#4A90D9','Green':'#4CAF50','Yellow':'#F5C518','Purple':'#9B59B6',
+  'Red':'#E74C3C','Starlight':'#F2EFE7','Midnight':'#1C1C2E','Storm Blue':'#4A6FA5',
+  'Ultramarine':'#2B4590','Teal':'#2E8B84','Sand':'#C4A882',
+  'Phantom Black':'#0D0D0D','Phantom White':'#F0EFF4','Titanium Black':'#1A1A1E',
+  'Titanium Gray':'#6E7278','Titanium Blue':'#4B6589','Titanium Violet':'#7B5EA7',
+  'Titanium Yellow':'#E8C84A','Cream':'#F5EDD6','Lavender':'#B89BC8','Navy':'#1A2F5A',
+  'Lime':'#A8D44A','Graphite':'#4A4A4A','Starry Black':'#1A1B2E','Moonlight White':'#F2F0EE',
+  'Rock Grey':'#7B7E85','Dreamy Purple':'#8B6B9E','Emerald Green':'#2E8B57',
+  'Gold':'#D4AF37','Silver':'#C0C0C0','Other':'#999',
 }
 
-const STORAGE_OPTIONS   = ['64GB','128GB','256GB','512GB','1TB']
+const STORAGE_OPTIONS   = ['32GB','64GB','128GB','256GB','512GB','1TB']
 const CONDITION_OPTIONS = ['Brand New','London Used','Nigerian Used']
-const NETWORK_OPTIONS   = ['4G','5G','4G/5G','Dual SIM 4G','Dual SIM 5G']
-const COLOR_OPTIONS     = ['Black','White','Silver','Gold','Blue','Green','Purple','Pink','Red','Yellow','Graphite','Titanium','Natural Titanium','White Titanium','Obsidian','Hazel','Coral','Charcoal','Porcelain','Sage','Sand','Mint','Sky','Lavender','Other']
-const BRAND_ICONS       = { 'Google Pixel':'🟢','iPhone':'🍎','Samsung':'🔵','Oppo':'🟠' }
 const BRAND_ORDER       = ['Google Pixel','iPhone','Samsung','Oppo']
+const BRAND_ICONS       = {'Google Pixel':'🟢','iPhone':'🍎','Samsung':'🔵','Oppo':'🟠'}
 
-function loadCatalog() {
-  try { return JSON.parse(localStorage.getItem('nv-catalog')) || DEFAULT_CATALOG } catch { return DEFAULT_CATALOG }
-}
-function saveCatalog(c) { localStorage.setItem('nv-catalog', JSON.stringify(c)) }
-
-const inp = {
-  background:'#F2F4F6', color:'#191C1E',
-  border:'1.5px solid #C1C6D6', borderRadius:8,
-  padding:'.55rem .8rem', fontSize:'.85rem',
+/* ── Shared UI helpers ───────────────────────────── */
+const I = {
+  background:'#F2F4F6', color:'#191C1E', border:'1.5px solid #C1C6D6',
+  borderRadius:8, padding:'.55rem .8rem', fontSize:'.85rem',
   fontFamily:'inherit', outline:'none', width:'100%',
 }
-const Sel = ({ value, onChange, options, placeholder }) => (
-  <select value={value} onChange={onChange} style={{ ...inp, appearance:'none' }}>
+const Sel = ({value, onChange, options, placeholder, disabled}) => (
+  <select value={value} onChange={onChange} disabled={disabled}
+    style={{...I, appearance:'none', opacity:disabled?.6:1, cursor:disabled?'default':'pointer'}}>
     {placeholder && <option value="">{placeholder}</option>}
     {options.map(o => <option key={o} value={o}>{o}</option>)}
   </select>
 )
-const Label = ({ children }) => (
-  <p style={{ fontSize:'.65rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'.09em', color:'#414754', marginBottom:'.3rem' }}>{children}</p>
+const Inp = ({value, onChange, placeholder, type='text', disabled}) => (
+  <input type={type} value={value} onChange={onChange} placeholder={placeholder} disabled={disabled}
+    style={{...I, opacity:disabled?.6:1}} />
 )
-const Row = ({ label, children }) => (
-  <div style={{ display:'flex', flexDirection:'column', gap:'.28rem' }}>
-    <Label>{label}</Label>
+const Lbl = ({children}) => (
+  <p style={{fontSize:'.65rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.3rem'}}>{children}</p>
+)
+const Field = ({label, children}) => (
+  <div style={{display:'flex',flexDirection:'column',gap:'.25rem'}}>
+    <Lbl>{label}</Lbl>
     {children}
+  </div>
+)
+const Btn = ({onClick, children, variant='primary', disabled, small}) => {
+  const bg = {primary:'#005BBF', ghost:'#F2F4F6', danger:'#FCE8E6', success:'#E6F4EA'}[variant]
+  const col= {primary:'#fff', ghost:'#191C1E', danger:'#C5221F', success:'#137333'}[variant]
+  return (
+    <button onClick={onClick} disabled={disabled}
+      style={{background:disabled?'#ADC7FF':bg, color:disabled?'#fff':col, border:variant==='ghost'?'1px solid #C1C6D6':'none', borderRadius:8, padding:small?'.3rem .75rem':'.58rem 1.25rem', fontFamily:'inherit', fontWeight:700, fontSize:small?'.75rem':'.875rem', cursor:disabled?'default':'pointer', transition:'background .15s', whiteSpace:'nowrap', display:'inline-flex', alignItems:'center', gap:'.35rem'}}>
+      {children}
+    </button>
+  )
+}
+
+/* Toggle switch for boolean fields */
+function Toggle({checked, onChange, label, sublabel}) {
+  return (
+    <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'.65rem .85rem', background:checked?'#E8F0FE':'#F2F4F6', borderRadius:10, border:`1.5px solid ${checked?'#ADC7FF':'#C1C6D6'}`, cursor:'pointer', transition:'all .15s'}}
+      onClick={() => onChange(!checked)}>
+      <div>
+        <p style={{fontWeight:600, fontSize:'.85rem', color:'#191C1E'}}>{label}</p>
+        {sublabel && <p style={{fontSize:'.72rem', color:'#727785', marginTop:'.1rem'}}>{sublabel}</p>}
+      </div>
+      <div style={{width:44, height:24, borderRadius:999, background:checked?'#005BBF':'#C1C6D6', position:'relative', flexShrink:0, transition:'background .15s'}}>
+        <div style={{position:'absolute', top:3, left:checked?20:3, width:18, height:18, borderRadius:'50%', background:'#fff', boxShadow:'0 1px 4px rgba(0,0,0,.2)', transition:'left .15s'}} />
+      </div>
+    </div>
+  )
+}
+
+/* Toast */
+function useToast() {
+  const [toast, setToast] = useState(null)
+  const show = (msg, type='success') => { setToast({msg,type}); setTimeout(()=>setToast(null),3000) }
+  const Toast = toast ? (
+    <div style={{position:'fixed',bottom:24,right:24,zIndex:999,padding:'.75rem 1.25rem',borderRadius:10,background:toast.type==='error'?'#FFDAD6':'#E6F4EA',color:toast.type==='error'?'#C5221F':'#137333',fontWeight:600,fontSize:'.85rem',boxShadow:'0 4px 16px rgba(0,0,0,.12)',animation:'fadeUp .3s ease'}}>
+      {toast.msg}
+    </div>
+  ) : null
+  return { show, Toast }
+}
+
+/* Section header */
+const SectionHead = ({title, subtitle, action}) => (
+  <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'1.5rem',gap:'1rem',flexWrap:'wrap'}}>
+    <div>
+      <h2 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'1.1rem',marginBottom:subtitle?'.2rem':0}}>{title}</h2>
+      {subtitle && <p style={{fontSize:'.8rem',color:'#727785'}}>{subtitle}</p>}
+    </div>
+    {action}
   </div>
 )
 
 /* ═══════════════════════════════════════════════
-   LOGIN SCREEN
+   TAB 1 — INVENTORY (variants)
 ═══════════════════════════════════════════════ */
-function LoginScreen({ onLogin }) {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
-
-  const handleLogin = async () => {
-    if (!username.trim() || !password) {
-      setError('Enter your username and password')
-      return
-    }
-    setLoading(true)
-    setError('')
-    const email = `${username.trim().toLowerCase()}${DOMAIN}`
-    try {
-      await signInWithEmailAndPassword(auth, email, password)
-      // onAuthStateChanged in parent will pick this up
-    } catch (err) {
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError('Wrong username or password')
-      } else if (err.code === 'auth/too-many-requests') {
-        setError('Too many attempts. Try again in a few minutes.')
-      } else {
-        setError('Login failed. Check your internet connection.')
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="pt" style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#F7F9FB' }}>
-      <div style={{ width:'100%', maxWidth:380, padding:'2.5rem', background:'#fff', borderRadius:20, border:'1px solid #C1C6D6', boxShadow:'0 4px 24px rgba(0,0,0,.08)' }}>
-
-        {/* Logo / Brand */}
-        <div style={{ textAlign:'center', marginBottom:'2rem' }}>
-          <div style={{ width:52, height:52, background:'#005BBF', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto .85rem', fontSize:24 }}>📱</div>
-          <h1 style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'1.25rem', color:'#191C1E' }}>Nova Mobiles Plus</h1>
-          <p style={{ fontSize:'.8rem', color:'#727785', marginTop:'.25rem' }}>Admin Panel</p>
-        </div>
-
-        {/* Username field */}
-        <div style={{ marginBottom:'.75rem' }}>
-          <Label>Username</Label>
-          <input
-            value={username}
-            onChange={e => { setUsername(e.target.value); setError('') }}
-            placeholder="admin"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            style={inp}
-            onKeyDown={e => e.key === 'Enter' && document.getElementById('adm-pw').focus()}
-          />
-        </div>
-
-        {/* Password field */}
-        <div style={{ marginBottom:'1.25rem' }}>
-          <Label>Password</Label>
-          <input
-            id="adm-pw"
-            type="password"
-            value={password}
-            onChange={e => { setPassword(e.target.value); setError('') }}
-            placeholder="••••••••"
-            style={inp}
-            onKeyDown={e => e.key === 'Enter' && handleLogin()}
-          />
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div style={{ background:'#FCE8E6', color:'#C5221F', padding:'.6rem .85rem', borderRadius:8, fontSize:'.82rem', fontWeight:600, marginBottom:'1rem' }}>
-            {error}
-          </div>
-        )}
-
-        {/* Login button */}
-        <button
-          onClick={handleLogin}
-          disabled={loading}
-          style={{ width:'100%', background: loading?'#ADC7FF':'#005BBF', color:'#fff', border:'none', borderRadius:10, padding:'.75rem', fontFamily:'inherit', fontWeight:700, fontSize:'.95rem', cursor: loading?'default':'pointer', transition:'background .2s' }}>
-          {loading ? '⏳ Signing in…' : 'Sign In'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-/* ═══════════════════════════════════════════════
-   INVENTORY TAB
-═══════════════════════════════════════════════ */
-function TabInventory({ phones, setPhones, onEdit }) {
-  const [search,   setSearch]   = useState('')
-  const [brand,    setBrand]    = useState('All')
-  const [cond,     setCond]     = useState('All')
-  const [avail,    setAvail]    = useState('All')
+function TabInventory({phones, setPhones, onEdit}) {
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState('All')
   const [deleting, setDeleting] = useState({})
-  const [toast,    setToast]    = useState(null)
+  const {show, Toast} = useToast()
 
-  const showToast = (msg, type='success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3000)
-  }
-
-  const handleDelete = async (phone) => {
-    if (!confirm(`Delete "${phone.name}"?`)) return
+  const del = async (phone) => {
+    if (!confirm(`Delete "${phone.name} — ${phone.color} ${phone.storage}"?`)) return
     setPhones(prev => prev.filter(p => p.id !== phone.id))
-    setDeleting(d => ({ ...d, [phone.id]:true }))
+    setDeleting(d => ({...d,[phone.id]:true}))
     try {
       await deletePhone(phone.id)
-      showToast(`${phone.name} deleted`)
+      show(`Deleted ${phone.name}`)
     } catch {
       setPhones(prev => [...prev, phone])
-      showToast('Delete failed — check Firestore rules', 'error')
+      show('Delete failed — check Firestore rules','error')
     } finally {
-      setDeleting(d => { const n={...d}; delete n[phone.id]; return n })
+      setDeleting(d => {const n={...d};delete n[phone.id];return n})
     }
   }
 
-  const handleDeleteAll = async () => {
-    if (!confirm(`Delete ALL ${phones.length} phones? This cannot be undone.`)) return
-    const backup = [...phones]
-    setPhones([])
-    let failed = 0
-    await Promise.all(backup.map(p => deletePhone(p.id).catch(() => failed++)))
-    if (failed > 0) {
-      setPhones(backup)
-      showToast(`${failed} deletions failed — check Firestore rules`, 'error')
-    } else {
-      showToast('All phones deleted')
-    }
-  }
-
-  const brands   = ['All', ...new Set(phones.map(p => p.brand))]
-  const q        = search.trim().toLowerCase()
+  const q = search.trim().toLowerCase()
   const filtered = phones.filter(p => {
-    const s = !q || p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q)
-    const b = brand==='All' || p.brand===brand
-    const c = cond ==='All' || p.condition===cond
-    const a = avail==='All' || (avail==='Available' ? p.available : !p.available)
-    return s && b && c && a
+    const s = !q || p.name?.toLowerCase().includes(q) || p.brand?.toLowerCase().includes(q) || p.color?.toLowerCase().includes(q)
+    const f = filter==='All' || (filter==='Available'?p.available:!p.available)
+    return s && f
   })
+
   const allB    = [...new Set(filtered.map(p=>p.brand))]
   const ordered = [...BRAND_ORDER.filter(b=>allB.includes(b)), ...allB.filter(b=>!BRAND_ORDER.includes(b))]
   const grouped = {}
-  ordered.forEach(b => { const l=filtered.filter(p=>p.brand===b); if(l.length) grouped[b]=l })
+  ordered.forEach(b => {const l=filtered.filter(p=>p.brand===b); if(l.length) grouped[b]=l})
 
   return (
     <div>
-      {toast && (
-        <div style={{ position:'fixed', bottom:24, right:24, zIndex:999, padding:'.75rem 1.25rem', borderRadius:10, background:toast.type==='error'?'#FFDAD6':'#E6F4EA', color:toast.type==='error'?'#C5221F':'#137333', fontWeight:600, fontSize:'.85rem', boxShadow:'0 4px 16px rgba(0,0,0,.12)', animation:'fadeUp .3s ease' }}>
-          {toast.msg}
+      {Toast}
+      <div style={{display:'flex',gap:'.65rem',flexWrap:'wrap',marginBottom:'1.25rem',padding:'.85rem 1rem',background:'#F2F4F6',borderRadius:12,border:'1px solid #C1C6D6'}}>
+        <div style={{position:'relative',flex:'1 1 180px'}}>
+          <span style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',fontSize:13,color:'#727785',pointerEvents:'none'}}>🔍</span>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search inventory…" style={{...I,paddingLeft:'1.8rem'}}/>
+          {search&&<button onClick={()=>setSearch('')} style={{position:'absolute',right:9,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#727785',fontSize:15}}>✕</button>}
         </div>
-      )}
-
-      {/* Filters */}
-      <div style={{ display:'flex', gap:'.65rem', flexWrap:'wrap', marginBottom:'1.25rem', padding:'1rem', background:'#F2F4F6', borderRadius:12, border:'1px solid #C1C6D6' }}>
-        <div style={{ position:'relative', flex:'1 1 180px' }}>
-          <span style={{ position:'absolute', left:9, top:'50%', transform:'translateY(-50%)', fontSize:13, color:'#727785', pointerEvents:'none' }}>🔍</span>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search phones…" style={{ ...inp, paddingLeft:'1.8rem' }} />
-          {search && <button onClick={()=>setSearch('')} style={{ position:'absolute', right:9, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#727785', fontSize:15 }}>✕</button>}
-        </div>
-        <select value={brand} onChange={e=>setBrand(e.target.value)} style={{ ...inp, flex:'0 1 140px' }}>{brands.map(b=><option key={b}>{b}</option>)}</select>
-        <select value={cond} onChange={e=>setCond(e.target.value)} style={{ ...inp, flex:'0 1 140px' }}>{['All',...CONDITION_OPTIONS].map(c=><option key={c}>{c}</option>)}</select>
-        <select value={avail} onChange={e=>setAvail(e.target.value)} style={{ ...inp, flex:'0 1 120px' }}>{['All','Available','Sold'].map(a=><option key={a}>{a}</option>)}</select>
-        <span style={{ color:'#727785', fontSize:'.75rem', alignSelf:'center', whiteSpace:'nowrap' }}>{filtered.length} phone{filtered.length!==1?'s':''}</span>
-        {phones.length > 0 && (
-          <button onClick={handleDeleteAll} style={{ background:'#FCE8E6', color:'#C5221F', border:'1px solid #F2837F', borderRadius:8, padding:'.45rem .9rem', fontFamily:'inherit', fontWeight:700, fontSize:'.78rem', cursor:'pointer', whiteSpace:'nowrap' }}>
-            🗑 Delete All ({phones.length})
+        {['All','Available','Sold'].map(f=>(
+          <button key={f} onClick={()=>setFilter(f)} style={{background:filter===f?'#005BBF':'#fff',color:filter===f?'#fff':'#414754',border:'1px solid #C1C6D6',borderRadius:8,padding:'.38rem .85rem',fontFamily:'inherit',fontWeight:600,fontSize:'.8rem',cursor:'pointer'}}>
+            {f}
           </button>
-        )}
+        ))}
+        <span style={{color:'#727785',fontSize:'.75rem',alignSelf:'center'}}>{filtered.length} variant{filtered.length!==1?'s':''}</span>
       </div>
 
-      {filtered.length === 0 && (
-        <div style={{ textAlign:'center', padding:'3rem', color:'#727785' }}>
-          {phones.length === 0 ? 'No phones yet. Add your first phone from the Add Phone tab.' : 'No phones match your filters.'}
+      {phones.length===0 && (
+        <div style={{textAlign:'center',padding:'4rem',color:'#727785',background:'#F2F4F6',borderRadius:12}}>
+          <div style={{fontSize:40,marginBottom:'1rem'}}>📦</div>
+          <p style={{fontWeight:600,marginBottom:'.35rem'}}>No inventory yet</p>
+          <p style={{fontSize:'.82rem'}}>Add phones from the <strong>Add to Inventory</strong> tab</p>
         </div>
       )}
 
-      {Object.entries(grouped).map(([b, list]) => (
-        <div key={b} style={{ marginBottom:'2.25rem' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'.55rem', marginBottom:'.85rem', paddingBottom:'.5rem', borderBottom:'2px solid #E6E8EA' }}>
-            <span>{BRAND_ICONS[b]||'📱'}</span>
-            <h3 style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'.95rem' }}>{b}</h3>
-            <span style={{ fontSize:'.68rem', color:'#727785', fontWeight:600 }}>{list.length} phone{list.length!==1?'s':''}</span>
+      {Object.entries(grouped).map(([brand, list]) => (
+        <div key={brand} style={{marginBottom:'2rem'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'.55rem',marginBottom:'.75rem',paddingBottom:'.45rem',borderBottom:'2px solid #E6E8EA'}}>
+            <span>{BRAND_ICONS[brand]||'📱'}</span>
+            <h3 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'.95rem'}}>{brand}</h3>
+            <span style={{fontSize:'.68rem',color:'#727785',fontWeight:600}}>{list.length}</span>
           </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:'.35rem' }}>
-            {list.map(p => (
-              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:'.85rem', padding:'.6rem .85rem', background:'#fff', border:'1px solid #C1C6D6', borderRadius:10, flexWrap:'wrap', opacity:deleting[p.id]?.5:1, transition:'opacity .2s' }}>
-                <div style={{ width:38, height:38, background:'#F2F4F6', borderRadius:6, overflow:'hidden', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  {p.images?.[0] ? <img src={p.images[0]} alt="" style={{ width:'100%', height:'100%', objectFit:'contain' }} /> : <span style={{ fontSize:18, opacity:.3 }}>📱</span>}
-                </div>
-                <div style={{ flex:1, minWidth:100 }}>
-                  <p style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'.875rem' }}>{p.name}</p>
-                  <p style={{ fontSize:'.72rem', color:'#414754' }}>{p.storage} · {p.color} · {p.condition}</p>
-                </div>
-                <span style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'.95rem', color:'#005BBF' }}>{formatPrice(p.price)}</span>
-                <span style={{ fontSize:'.65rem', fontWeight:700, padding:'.2rem .55rem', borderRadius:999, background:p.available?'#E6F4EA':'#FCE8E6', color:p.available?'#137333':'#C5221F' }}>
-                  {p.available?'Available':'Sold'}
-                </span>
-                <div style={{ display:'flex', gap:'.35rem' }}>
-                  <button onClick={()=>onEdit(p)} style={{ background:'#E8F0FE', color:'#1967D2', border:'none', borderRadius:7, padding:'.28rem .7rem', fontFamily:'inherit', fontWeight:700, fontSize:'.75rem', cursor:'pointer' }}>Edit</button>
-                  <button onClick={()=>handleDelete(p)} disabled={deleting[p.id]} style={{ background:'#FCE8E6', color:'#C5221F', border:'none', borderRadius:7, padding:'.28rem .7rem', fontFamily:'inherit', fontWeight:700, fontSize:'.75rem', cursor:deleting[p.id]?'default':'pointer' }}>
-                    {deleting[p.id]?'…':'Delete'}
-                  </button>
-                </div>
+          {list.map(p => (
+            <div key={p.id} style={{display:'flex',alignItems:'center',gap:'.85rem',padding:'.6rem .85rem',background:'#fff',border:'1px solid #C1C6D6',borderRadius:10,marginBottom:'.3rem',flexWrap:'wrap',opacity:deleting[p.id]?.5:1,transition:'opacity .2s'}}>
+              <div style={{width:40,height:48,background:'#F2F4F6',borderRadius:6,overflow:'hidden',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                {p.images?.[0] ? <img src={p.images[0]} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}}/> : <span style={{fontSize:20,opacity:.3}}>📱</span>}
               </div>
-            ))}
-          </div>
+              <div style={{flex:1,minWidth:100}}>
+                <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.875rem'}}>{p.name}</p>
+                <p style={{fontSize:'.72rem',color:'#414754'}}>{p.color} · {p.storage} · {p.condition}</p>
+              </div>
+              <span style={{fontFamily:'var(--font-display)',fontWeight:800,color:'#005BBF',fontSize:'.95rem'}}>{formatPrice(p.price)}</span>
+              <span style={{fontSize:'.65rem',fontWeight:700,padding:'.2rem .55rem',borderRadius:999,background:p.available?'#E6F4EA':'#FCE8E6',color:p.available?'#137333':'#C5221F'}}>
+                {p.available?'Available':'Sold'}
+              </span>
+              <span style={{fontSize:'.65rem',color:'#727785',background:'#F2F4F6',padding:'.2rem .55rem',borderRadius:6}}>{p.images?.length||0} photo{p.images?.length!==1?'s':''}</span>
+              <div style={{display:'flex',gap:'.35rem'}}>
+                <button onClick={()=>onEdit(p)} style={{background:'#E8F0FE',color:'#1967D2',border:'none',borderRadius:7,padding:'.28rem .7rem',fontFamily:'inherit',fontWeight:700,fontSize:'.75rem',cursor:'pointer'}}>Edit</button>
+                <button onClick={()=>del(p)} disabled={deleting[p.id]} style={{background:'#FCE8E6',color:'#C5221F',border:'none',borderRadius:7,padding:'.28rem .7rem',fontFamily:'inherit',fontWeight:700,fontSize:'.75rem',cursor:deleting[p.id]?'default':'pointer'}}>
+                  {deleting[p.id]?'…':'Delete'}
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       ))}
-      <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
     </div>
   )
 }
 
 /* ═══════════════════════════════════════════════
-   EDIT PRICES TAB
+   TAB 2 — CATALOG (master products)
 ═══════════════════════════════════════════════ */
-function TabPrices({ phones, onSavePrice }) {
+const SPEC_FIELDS = [
+  {key:'display',      label:'Display',         placeholder:'e.g. 6.7" LTPO OLED, 1-120Hz'},
+  {key:'processor',    label:'Processor',        placeholder:'e.g. Google Tensor G3'},
+  {key:'camera',       label:'Camera System',    placeholder:'e.g. 50MP main + 48MP ultrawide + 48MP tele'},
+  {key:'frontCamera',  label:'Front Camera',     placeholder:'e.g. 10.5MP autofocus'},
+  {key:'battery',      label:'Battery',          placeholder:'e.g. 5050mAh'},
+  {key:'charging',     label:'Charging',         placeholder:'e.g. 30W wired / 23W wireless'},
+  {key:'os',           label:'Operating System', placeholder:'e.g. Android 14'},
+  {key:'connectivity', label:'Connectivity',     placeholder:'e.g. 5G, WiFi 7, BT 5.3, NFC'},
+  {key:'protection',   label:'Protection',       placeholder:'e.g. IP68, Gorilla Glass Victus 2'},
+  {key:'dimensions',   label:'Dimensions',       placeholder:'e.g. 162.6 × 76.5 × 8.8mm'},
+  {key:'weight',       label:'Weight',           placeholder:'e.g. 213g'},
+]
+
+const BRANDS_LIST = ['Google Pixel','iPhone','Samsung','Oppo','Other']
+
+function CatalogForm({initial, onSave, onCancel, saving}) {
+  const [form, setForm] = useState(initial || {brand:'',model:'',display:'',processor:'',camera:'',frontCamera:'',battery:'',charging:'',os:'',connectivity:'',protection:'',dimensions:'',weight:''})
+  const [err,  setErr]  = useState('')
+  const set = (k,v) => setForm(f=>({...f,[k]:v}))
+
+  const submit = () => {
+    if (!form.brand) {setErr('Select a brand'); return}
+    if (!form.model.trim()) {setErr('Enter a model name'); return}
+    setErr('')
+    const slug = (form.brand+'-'+form.model).toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')
+    onSave({...form, slug})
+  }
+
+  return (
+    <div style={{maxWidth:680}}>
+      {err && <div style={{background:'#FCE8E6',color:'#C5221F',padding:'.6rem .85rem',borderRadius:8,fontSize:'.82rem',fontWeight:600,marginBottom:'1rem'}}>{err}</div>}
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'.75rem',marginBottom:'1rem'}}>
+        <Field label="Brand *">
+          <Sel value={form.brand} onChange={e=>set('brand',e.target.value)} options={BRANDS_LIST} placeholder="Select brand…"/>
+        </Field>
+        <Field label="Model Name *">
+          <Inp value={form.model} onChange={e=>set('model',e.target.value)} placeholder="e.g. Pixel 8 Pro"/>
+        </Field>
+      </div>
+
+      <div style={{borderTop:'1px solid #E6E8EA',paddingTop:'1rem',marginBottom:'1rem'}}>
+        <p style={{fontSize:'.7rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.85rem'}}>Fixed Specifications (same for all variants of this model)</p>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'.75rem'}}>
+          {SPEC_FIELDS.map(({key,label,placeholder}) => (
+            <Field key={key} label={label}>
+              <Inp value={form[key]||''} onChange={e=>set(key,e.target.value)} placeholder={placeholder}/>
+            </Field>
+          ))}
+        </div>
+      </div>
+
+      <div style={{display:'flex',gap:'.55rem'}}>
+        <Btn onClick={submit} disabled={saving}>{saving?'⏳ Saving…':'✓ Save to Catalog'}</Btn>
+        <Btn onClick={onCancel} variant="ghost">Cancel</Btn>
+      </div>
+    </div>
+  )
+}
+
+function TabCatalog({catalog, setCatalog, showToast}) {
+  const [adding,  setAdding]  = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [saving,  setSaving]  = useState(false)
+  const [deleting,setDeleting]= useState({})
+  const [search,  setSearch]  = useState('')
+
+  const allB    = [...new Set(catalog.map(c=>c.brand))]
+  const ordered = [...BRAND_ORDER.filter(b=>allB.includes(b)),...allB.filter(b=>!BRAND_ORDER.includes(b))]
+
+  const q = search.trim().toLowerCase()
+  const filtered = q ? catalog.filter(c => c.model?.toLowerCase().includes(q) || c.brand?.toLowerCase().includes(q)) : catalog
+  const grouped = {}
+  ordered.forEach(b => {
+    const l = filtered.filter(c=>c.brand===b)
+    if (l.length) grouped[b]=l
+  })
+
+  const save = async (data) => {
+    setSaving(true)
+    try {
+      if (editing) {
+        await updateCatalogProduct(editing.id, data)
+        setCatalog(prev => prev.map(c => c.id===editing.id ? {...c,...data} : c))
+        showToast(`${data.model} updated — all variants synced`)
+      } else {
+        const ref = await addCatalogProduct(data)
+        setCatalog(prev => [...prev, {id:ref.id,...data}])
+        showToast(`${data.model} added to catalog`)
+      }
+      setAdding(false); setEditing(null)
+    } catch { showToast('Save failed — check Firestore rules','error') }
+    finally { setSaving(false) }
+  }
+
+  const del = async (cat) => {
+    if (!confirm(`Delete "${cat.model}" from catalog? This does not delete inventory variants.`)) return
+    setDeleting(d=>({...d,[cat.id]:true}))
+    try {
+      await deleteCatalogProduct(cat.id)
+      setCatalog(prev=>prev.filter(c=>c.id!==cat.id))
+      showToast(`${cat.model} removed from catalog`)
+    } catch { showToast('Delete failed','error') }
+    finally { setDeleting(d=>{const n={...d};delete n[cat.id];return n}) }
+  }
+
+  if (adding || editing) return (
+    <div>
+      <div style={{display:'flex',alignItems:'center',gap:'.75rem',marginBottom:'1.5rem'}}>
+        <button onClick={()=>{setAdding(false);setEditing(null)}} style={{background:'#F2F4F6',border:'none',borderRadius:8,padding:'.4rem .75rem',cursor:'pointer',fontSize:'.82rem',fontFamily:'inherit',fontWeight:600}}>← Back</button>
+        <h2 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'1.05rem'}}>{editing?`Edit: ${editing.model}`:'New Catalog Product'}</h2>
+      </div>
+      <CatalogForm initial={editing} onSave={save} onCancel={()=>{setAdding(false);setEditing(null)}} saving={saving}/>
+    </div>
+  )
+
+  return (
+    <div>
+      <SectionHead
+        title="Product Catalog"
+        subtitle="Master specs for each phone model. Editing a model here updates all its inventory variants automatically."
+        action={<Btn onClick={()=>setAdding(true)}>+ New Model</Btn>}
+      />
+
+      <div style={{position:'relative',maxWidth:320,marginBottom:'1.25rem'}}>
+        <span style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',fontSize:13,color:'#727785',pointerEvents:'none'}}>🔍</span>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search catalog…" style={{...I,paddingLeft:'1.8rem'}}/>
+      </div>
+
+      {catalog.length===0 && (
+        <div style={{textAlign:'center',padding:'4rem',background:'#F2F4F6',borderRadius:12,color:'#727785'}}>
+          <div style={{fontSize:40,marginBottom:'1rem'}}>📋</div>
+          <p style={{fontWeight:600,marginBottom:'.35rem'}}>Catalog is empty</p>
+          <p style={{fontSize:'.82rem',marginBottom:'1.25rem'}}>Add your first phone model to get started</p>
+          <Btn onClick={()=>setAdding(true)}>+ Add First Model</Btn>
+        </div>
+      )}
+
+      {Object.entries(grouped).map(([brand, list]) => (
+        <div key={brand} style={{marginBottom:'2rem'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'.55rem',marginBottom:'.75rem',paddingBottom:'.45rem',borderBottom:'2px solid #E6E8EA'}}>
+            <span>{BRAND_ICONS[brand]||'📱'}</span>
+            <h3 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'.95rem'}}>{brand}</h3>
+            <span style={{fontSize:'.68rem',color:'#727785',fontWeight:600}}>{list.length} model{list.length!==1?'s':''}</span>
+          </div>
+          {list.map(cat => (
+            <div key={cat.id} style={{background:'#fff',border:'1px solid #C1C6D6',borderRadius:10,marginBottom:'.5rem',overflow:'hidden',opacity:deleting[cat.id]?.5:1}}>
+              <div style={{display:'flex',alignItems:'center',gap:'1rem',padding:'.7rem 1rem'}}>
+                <div style={{flex:1}}>
+                  <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.9rem'}}>{cat.model}</p>
+                  <p style={{fontSize:'.72rem',color:'#727785',marginTop:'.1rem'}}>
+                    {[cat.processor,cat.display].filter(Boolean).join(' · ')||'No specs added yet'}
+                  </p>
+                </div>
+                <div style={{display:'flex',gap:'.35rem'}}>
+                  <button onClick={()=>setEditing(cat)} style={{background:'#E8F0FE',color:'#1967D2',border:'none',borderRadius:7,padding:'.28rem .7rem',fontFamily:'inherit',fontWeight:700,fontSize:'.75rem',cursor:'pointer'}}>Edit Specs</button>
+                  <button onClick={()=>del(cat)} disabled={deleting[cat.id]} style={{background:'#FCE8E6',color:'#C5221F',border:'none',borderRadius:7,padding:'.28rem .7rem',fontFamily:'inherit',fontWeight:700,fontSize:'.75rem',cursor:'pointer'}}>Delete</button>
+                </div>
+              </div>
+              {/* Mini spec preview */}
+              {(cat.camera||cat.battery||cat.os) && (
+                <div style={{padding:'.5rem 1rem .7rem',borderTop:'1px solid #F2F4F6',display:'flex',gap:'1.5rem',flexWrap:'wrap'}}>
+                  {[['📸',cat.camera],['🔋',cat.battery],['📱',cat.os]].filter(([,v])=>v).map(([icon,val])=>(
+                    <span key={val} style={{fontSize:'.72rem',color:'#414754'}}>{icon} {val}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════
+   TAB 3 — ADD TO INVENTORY (variants)
+═══════════════════════════════════════════════ */
+const emptyVariant = {
+  catalogId:'', color:'', storage:'128GB', condition:'Brand New',
+  price:'', available:true, featured:false, images:'', slug:''
+}
+
+function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
+  const [form, setForm] = useState(() => {
+    if (editPhone) return {
+      ...emptyVariant, ...editPhone,
+      images:(editPhone.images||[]).join(', '),
+    }
+    return emptyVariant
+  })
+  const [err, setErr] = useState('')
+
+  const set = (k,v) => setForm(f=>({...f,[k]:v}))
+
+  // Selected catalog product
+  const catalogProduct = catalog.find(c => c.id === form.catalogId)
+  const colors = catalogProduct ? (BRAND_COLORS[catalogProduct.brand] || DEFAULT_COLORS) : DEFAULT_COLORS
+
+  // When catalog product changes, reset color to first available
+  const handleCatalogChange = (id) => {
+    const cp = catalog.find(c => c.id === id)
+    set('catalogId', id)
+    if (cp) {
+      const cols = BRAND_COLORS[cp.brand] || DEFAULT_COLORS
+      set('color', cols[0])
+    }
+  }
+
+  const submit = () => {
+    if (!form.catalogId) {setErr('Select a phone model from catalog'); return}
+    if (!form.color)     {setErr('Select a color'); return}
+    if (!form.price)     {setErr('Enter a price'); return}
+    setErr('')
+    const cp = catalog.find(c => c.id === form.catalogId)
+    const slug = form.slug || (cp ? cp.slug+'-'+form.storage+'-'+form.color : '').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')
+    const specs = {
+      display:cp?.display, processor:cp?.processor, camera:cp?.camera,
+      battery:cp?.battery, charging:cp?.charging, os:cp?.os,
+      connectivity:cp?.connectivity, protection:cp?.protection,
+    }
+    onSave({
+      catalogId: form.catalogId,
+      brand: cp?.brand || '',
+      model: cp?.model || '',
+      name: cp?.model || '',
+      color: form.color,
+      storage: form.storage,
+      condition: form.condition,
+      price: Number(form.price),
+      available: form.available,
+      featured: form.featured,
+      images: form.images ? form.images.split(',').map(s=>s.trim()).filter(Boolean) : [],
+      slug,
+      specs,
+    })
+  }
+
+  return (
+    <div style={{maxWidth:640}}>
+      <h3 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'1.05rem',marginBottom:'1.5rem'}}>
+        {editPhone ? `Editing variant: ${editPhone.name}` : 'Add Phone to Inventory'}
+      </h3>
+
+      {err && <div style={{background:'#FCE8E6',color:'#C5221F',padding:'.6rem .85rem',borderRadius:8,fontSize:'.82rem',fontWeight:600,marginBottom:'1rem'}}>{err}</div>}
+
+      {catalog.length===0 && (
+        <div style={{background:'#FEF7E0',border:'1.5px solid #FFB95F',borderRadius:10,padding:'1rem',marginBottom:'1rem',fontSize:'.82rem',color:'#653E00'}}>
+          ⚠️ Your catalog is empty. Go to the <strong>Catalog</strong> tab and add phone models first.
+        </div>
+      )}
+
+      {/* Step 1: Pick model */}
+      <div style={{background:'#F2F4F6',borderRadius:12,padding:'1.25rem',marginBottom:'1.25rem',border:'1px solid #C1C6D6'}}>
+        <p style={{fontSize:'.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.75rem'}}>Step 1 — Select Phone Model</p>
+        <Field label="Phone Model *">
+          <select value={form.catalogId} onChange={e=>handleCatalogChange(e.target.value)}
+            style={{...I,appearance:'none'}}>
+            <option value="">Select from catalog…</option>
+            {BRAND_ORDER.map(brand => {
+              const models = catalog.filter(c=>c.brand===brand)
+              if (!models.length) return null
+              return (
+                <optgroup key={brand} label={brand}>
+                  {models.map(c => <option key={c.id} value={c.id}>{c.model}</option>)}
+                </optgroup>
+              )
+            })}
+            {catalog.filter(c=>!BRAND_ORDER.includes(c.brand)).map(c=>(
+              <option key={c.id} value={c.id}>{c.brand} — {c.model}</option>
+            ))}
+          </select>
+        </Field>
+
+        {/* Inherited specs preview */}
+        {catalogProduct && (
+          <div style={{marginTop:'.85rem',padding:'.85rem',background:'#fff',borderRadius:8,border:'1px solid #C1C6D6'}}>
+            <p style={{fontSize:'.65rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#005BBF',marginBottom:'.65rem'}}>✓ Specs inherited from catalog</p>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'.4rem'}}>
+              {SPEC_FIELDS.filter(f=>catalogProduct[f.key]).map(f=>(
+                <div key={f.key} style={{fontSize:'.75rem'}}>
+                  <span style={{color:'#727785',fontWeight:600}}>{f.label}: </span>
+                  <span style={{color:'#191C1E'}}>{catalogProduct[f.key]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Step 2: Variant details */}
+      <div style={{background:'#F2F4F6',borderRadius:12,padding:'1.25rem',marginBottom:'1.25rem',border:'1px solid #C1C6D6'}}>
+        <p style={{fontSize:'.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.75rem'}}>Step 2 — Variant Details</p>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'.75rem',marginBottom:'.75rem'}}>
+          <Field label="Color *">
+            <Sel value={form.color} onChange={e=>set('color',e.target.value)} options={colors} disabled={!catalogProduct}/>
+          </Field>
+          <Field label="Storage">
+            <Sel value={form.storage} onChange={e=>set('storage',e.target.value)} options={STORAGE_OPTIONS}/>
+          </Field>
+          <Field label="Condition">
+            <Sel value={form.condition} onChange={e=>set('condition',e.target.value)} options={CONDITION_OPTIONS}/>
+          </Field>
+          <Field label="Price (₦) *">
+            <Inp type="number" value={form.price} onChange={e=>set('price',e.target.value)} placeholder="e.g. 580000"/>
+          </Field>
+        </div>
+      </div>
+
+      {/* Step 3: Images */}
+      <div style={{background:'#F2F4F6',borderRadius:12,padding:'1.25rem',marginBottom:'1.25rem',border:'1px solid #C1C6D6'}}>
+        <p style={{fontSize:'.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.75rem'}}>Step 3 — Images</p>
+        <Field label="Image URLs — comma separated">
+          <Inp value={form.images} onChange={e=>set('images',e.target.value)} placeholder="https://…, https://…"/>
+        </Field>
+        <p style={{fontSize:'.72rem',color:'#727785',marginTop:'.4rem'}}>
+          Upload images to Firebase Storage or any host, then paste the URLs here separated by commas.
+          The first URL is the main product image.
+        </p>
+      </div>
+
+      {/* Step 4: Status */}
+      <div style={{background:'#F2F4F6',borderRadius:12,padding:'1.25rem',marginBottom:'1.5rem',border:'1px solid #C1C6D6'}}>
+        <p style={{fontSize:'.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.75rem'}}>Step 4 — Status</p>
+        <div style={{display:'flex',flexDirection:'column',gap:'.55rem'}}>
+          <Toggle
+            checked={form.available}
+            onChange={v=>set('available',v)}
+            label="Available for Sale"
+            sublabel={form.available ? 'Visible in shop and available to buy' : 'Hidden from shop — will show as Sold'}
+          />
+          <Toggle
+            checked={form.featured}
+            onChange={v=>set('featured',v)}
+            label="Featured on Homepage"
+            sublabel={form.featured ? 'Shown in the Featured section on the homepage' : 'Not shown on homepage'}
+          />
+        </div>
+      </div>
+
+      <div style={{display:'flex',gap:'.55rem'}}>
+        <Btn onClick={submit} disabled={saving}>{saving?'⏳ Saving…':`✓ ${editPhone?'Update Variant':'Add to Inventory'}`}</Btn>
+        <Btn onClick={onCancel} variant="ghost">Cancel</Btn>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════
+   TAB 4 — EDIT PRICES
+═══════════════════════════════════════════════ */
+function TabPrices({phones, onSavePrice}) {
   const [prices, setPrices] = useState({})
   const [saving, setSaving] = useState({})
   const [done,   setDone]   = useState({})
 
   useEffect(() => {
-    const init = {}
-    phones.forEach(p => { init[p.id] = p.price })
-    setPrices(init)
+    const init={}; phones.forEach(p=>{init[p.id]=p.price}); setPrices(init)
   }, [phones])
 
   const save = async (phone) => {
-    const newPrice = Number(prices[phone.id])
-    if (!newPrice || newPrice === phone.price) return
-    setSaving(s => ({ ...s, [phone.id]:true }))
+    const np=Number(prices[phone.id])
+    if (!np||np===phone.price) return
+    setSaving(s=>({...s,[phone.id]:true}))
     try {
-      await onSavePrice(phone.id, newPrice)
-      setDone(d => ({ ...d, [phone.id]:true }))
-      setTimeout(() => setDone(d => ({ ...d, [phone.id]:false })), 2000)
+      await onSavePrice(phone.id,np)
+      setDone(d=>({...d,[phone.id]:true}))
+      setTimeout(()=>setDone(d=>({...d,[phone.id]:false})),2000)
     } catch { alert('Save failed') }
-    finally { setSaving(s => ({ ...s, [phone.id]:false })) }
+    finally { setSaving(s=>({...s,[phone.id]:false})) }
   }
 
   const allB    = [...new Set(phones.map(p=>p.brand))]
-  const ordered = [...BRAND_ORDER.filter(b=>allB.includes(b)), ...allB.filter(b=>!BRAND_ORDER.includes(b))]
+  const ordered = [...BRAND_ORDER.filter(b=>allB.includes(b)),...allB.filter(b=>!BRAND_ORDER.includes(b))]
 
   return (
     <div>
-      <p style={{ color:'#414754', fontSize:'.82rem', marginBottom:'1.25rem', padding:'.85rem 1rem', background:'#E8F0FE', border:'1.5px solid #ADC7FF', borderRadius:10 }}>
-        Change any price and press <strong>Save</strong>. You can also press Enter to save quickly.
+      <p style={{color:'#414754',fontSize:'.82rem',marginBottom:'1.25rem',padding:'.85rem 1rem',background:'#E8F0FE',border:'1.5px solid #ADC7FF',borderRadius:10}}>
+        Change a price and press <strong>Save</strong> or hit Enter. Updates Firebase instantly.
       </p>
       {ordered.map(brand => {
-        const list = phones.filter(p=>p.brand===brand)
-        if (!list.length) return null
+        const list=phones.filter(p=>p.brand===brand)
+        if(!list.length) return null
         return (
-          <div key={brand} style={{ marginBottom:'2.25rem' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:'.55rem', marginBottom:'.85rem', paddingBottom:'.45rem', borderBottom:'2px solid #E6E8EA' }}>
+          <div key={brand} style={{marginBottom:'2rem'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'.55rem',marginBottom:'.75rem',paddingBottom:'.45rem',borderBottom:'2px solid #E6E8EA'}}>
               <span>{BRAND_ICONS[brand]||'📱'}</span>
-              <h3 style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'.95rem' }}>{brand}</h3>
+              <h3 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'.95rem'}}>{brand}</h3>
             </div>
-            {list.map(p => (
-              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:'1rem', padding:'.55rem .85rem', background:'#fff', border:'1px solid #C1C6D6', borderRadius:10, marginBottom:'.3rem', flexWrap:'wrap' }}>
-                <p style={{ flex:1, minWidth:120, fontFamily:'var(--font-display)', fontWeight:700, fontSize:'.875rem' }}>
-                  {p.name}
-                  <span style={{ fontWeight:400, color:'#414754', fontSize:'.75rem', marginLeft:'.5rem' }}>{p.storage} · {p.condition}</span>
-                </p>
-                <div style={{ display:'flex', alignItems:'center', gap:'.4rem' }}>
-                  <span style={{ fontSize:'.8rem', color:'#414754' }}>₦</span>
+            {list.map(p=>(
+              <div key={p.id} style={{display:'flex',alignItems:'center',gap:'1rem',padding:'.55rem .85rem',background:'#fff',border:'1px solid #C1C6D6',borderRadius:10,marginBottom:'.3rem',flexWrap:'wrap'}}>
+                <div style={{flex:1,minWidth:120}}>
+                  <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.875rem'}}>{p.name||p.model}</p>
+                  <p style={{fontSize:'.72rem',color:'#414754'}}>{p.color} · {p.storage} · {p.condition}</p>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:'.4rem'}}>
+                  <span style={{fontSize:'.8rem',color:'#414754'}}>₦</span>
                   <input type="number" value={prices[p.id]||''} onChange={e=>setPrices(prev=>({...prev,[p.id]:e.target.value}))}
-                    style={{ ...inp, width:130, textAlign:'right' }}
-                    onKeyDown={e=>e.key==='Enter'&&save(p)} />
+                    style={{...I,width:130,textAlign:'right'}} onKeyDown={e=>e.key==='Enter'&&save(p)}/>
                   <button onClick={()=>save(p)} disabled={saving[p.id]}
-                    style={{ background:done[p.id]?'#E6F4EA':'#005BBF', color:done[p.id]?'#137333':'#fff', border:'none', borderRadius:8, padding:'.35rem .8rem', fontFamily:'inherit', fontWeight:700, fontSize:'.78rem', cursor:'pointer', minWidth:50, transition:'background .2s' }}>
+                    style={{background:done[p.id]?'#E6F4EA':'#005BBF',color:done[p.id]?'#137333':'#fff',border:'none',borderRadius:8,padding:'.35rem .8rem',fontFamily:'inherit',fontWeight:700,fontSize:'.78rem',cursor:'pointer',minWidth:50,transition:'background .2s'}}>
                     {saving[p.id]?'…':done[p.id]?'✓':'Save'}
                   </button>
                 </div>
@@ -356,148 +632,228 @@ function TabPrices({ phones, onSavePrice }) {
   )
 }
 
+
 /* ═══════════════════════════════════════════════
-   ADD / EDIT PHONE TAB
+   TAB — MANAGE IMAGES
+   Images stored on catalog doc as colorImages map
 ═══════════════════════════════════════════════ */
-const emptyForm = {
-  brand:'', name:'', condition:'Brand New', storage:'128GB', color:'Black',
-  network:'4G', price:'', images:'', featured:false, available:true, slug:'',
-  specs:{ display:'', processor:'', camera:'', battery:'', ram:'' }
-}
+function TabImages({ catalog, phones, showToast }) {
+  const [selCatalogId, setSelCatalogId] = useState('')
+  const [colorImages,  setColorImages]  = useState({})   // { color: ['url1','url2'] }
+  const [newUrls,      setNewUrls]      = useState({})   // { color: 'draft url input' }
+  const [saving,       setSaving]       = useState(false)
+  const [loaded,       setLoaded]       = useState(false)
 
-function TabAddEdit({ catalog, editPhone, onSave, onCancel, saving }) {
-  const [form, setForm] = useState(editPhone ? {
-    ...emptyForm, ...editPhone,
-    images:(editPhone.images||[]).join(', '),
-    specs:{ display:'', processor:'', camera:'', battery:'', ram:'', ...(editPhone.specs||{}) }
-  } : emptyForm)
-  const [err, setErr] = useState('')
+  const BRAND_ORDER_LOCAL = ['Google Pixel','iPhone','Samsung','Oppo']
 
-  const brands = Object.keys(catalog)
-  const models = form.brand ? (catalog[form.brand]||[]) : []
-  const set     = (k,v) => setForm(f=>({...f,[k]:v}))
-  const setSpec = (k,v) => setForm(f=>({...f,specs:{...f.specs,[k]:v}}))
+  // When catalog product selected, load its colorImages
+  const handleSelectCatalog = async (id) => {
+    setSelCatalogId(id)
+    setLoaded(false)
+    if (!id) { setColorImages({}); return }
+    const cat = catalog.find(c => c.id === id)
+    setColorImages(cat?.colorImages || {})
+    setLoaded(true)
+  }
 
-  const handleSave = () => {
-    if (!form.brand) { setErr('Select a brand'); return }
-    if (!form.name)  { setErr('Select a model'); return }
-    if (!form.price) { setErr('Enter a price'); return }
-    setErr('')
-    const slug = form.slug || (form.brand+'-'+form.name).toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')
-    onSave({ ...form, slug, price:Number(form.price), images:form.images?form.images.split(',').map(s=>s.trim()).filter(Boolean):[] })
+  const selectedCatalog = catalog.find(c => c.id === selCatalogId)
+
+  // Colors that have variants for this model in inventory
+  const variantColors = selCatalogId
+    ? [...new Set(phones.filter(p => p.catalogId === selCatalogId).map(p => p.color).filter(Boolean))]
+    : []
+
+  // All colors for the brand (for adding new color images beyond variants)
+  const brandColors = selectedCatalog ? (BRAND_COLORS[selectedCatalog.brand] || DEFAULT_COLORS) : []
+  const allColors   = [...new Set([...variantColors, ...brandColors])]
+
+  const addImage = (color) => {
+    const url = (newUrls[color] || '').trim()
+    if (!url) return
+    setColorImages(prev => ({
+      ...prev,
+      [color]: [...(prev[color] || []), url],
+    }))
+    setNewUrls(prev => ({ ...prev, [color]: '' }))
+  }
+
+  const removeImage = (color, idx) => {
+    setColorImages(prev => {
+      const updated = [...(prev[color] || [])]
+      updated.splice(idx, 1)
+      const next = { ...prev, [color]: updated }
+      if (!next[color].length) delete next[color]
+      return next
+    })
+  }
+
+  const saveImages = async () => {
+    if (!selCatalogId) return
+    setSaving(true)
+    try {
+      const { updateCatalogColorImages } = await import('../lib/phones')
+      await updateCatalogColorImages(selCatalogId, colorImages)
+      showToast('Images saved — all variants of this model updated')
+    } catch { showToast('Save failed — check Firestore rules', 'error') }
+    finally { setSaving(false) }
   }
 
   return (
-    <div style={{ maxWidth:680 }}>
-      <h3 style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'1.05rem', marginBottom:'1.5rem' }}>
-        {editPhone ? `Editing: ${editPhone.name}` : 'Add New Phone'}
-      </h3>
-      {err && <div style={{ background:'#FCE8E6', color:'#C5221F', padding:'.65rem 1rem', borderRadius:8, fontSize:'.82rem', fontWeight:600, marginBottom:'1rem' }}>{err}</div>}
+    <div>
+      <SectionHead
+        title="Manage Phone Images"
+        subtitle="Select a phone model. Add images per colour. Each colour gets its own photo gallery shown to customers."
+      />
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'.85rem', marginBottom:'.85rem' }}>
-        <Row label="Brand *"><Sel value={form.brand} onChange={e=>{set('brand',e.target.value);set('name','')}} options={brands} placeholder="Select brand…" /></Row>
-        <Row label="Model *"><Sel value={form.name} onChange={e=>set('name',e.target.value)} options={models} placeholder={form.brand?'Select model…':'Select brand first'} /></Row>
-        <Row label="Condition"><Sel value={form.condition} onChange={e=>set('condition',e.target.value)} options={CONDITION_OPTIONS} /></Row>
-        <Row label="Storage"><Sel value={form.storage} onChange={e=>set('storage',e.target.value)} options={STORAGE_OPTIONS} /></Row>
-        <Row label="Color"><Sel value={form.color} onChange={e=>set('color',e.target.value)} options={COLOR_OPTIONS} /></Row>
-        <Row label="Network"><Sel value={form.network} onChange={e=>set('network',e.target.value)} options={NETWORK_OPTIONS} /></Row>
-        <Row label="Price (₦) *"><input type="number" value={form.price} onChange={e=>set('price',e.target.value)} placeholder="e.g. 580000" style={inp} /></Row>
-        <Row label="Slug (auto if blank)"><input value={form.slug} onChange={e=>set('slug',e.target.value)} placeholder="e.g. pixel-8-pro" style={inp} /></Row>
+      {/* Step 1: Select model */}
+      <div style={{ background:'#F2F4F6', borderRadius:12, padding:'1.25rem', marginBottom:'1.5rem', border:'1px solid #C1C6D6', maxWidth:480 }}>
+        <Lbl>Select Phone Model</Lbl>
+        <select value={selCatalogId} onChange={e => handleSelectCatalog(e.target.value)}
+          style={{ ...I, appearance:'none' }}>
+          <option value="">Choose a model…</option>
+          {BRAND_ORDER_LOCAL.map(brand => {
+            const models = catalog.filter(c => c.brand === brand)
+            if (!models.length) return null
+            return (
+              <optgroup key={brand} label={brand}>
+                {models.map(c => <option key={c.id} value={c.id}>{c.model}</option>)}
+              </optgroup>
+            )
+          })}
+        </select>
       </div>
 
-      <Row label="Image URLs — comma separated">
-        <input value={form.images} onChange={e=>set('images',e.target.value)} placeholder="https://…, https://…" style={{ ...inp, marginBottom:'.85rem' }} />
-      </Row>
-
-      <div style={{ marginBottom:'.85rem' }}>
-        <Label>Specifications</Label>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'.55rem' }}>
-          {[['display','Display'],['processor','Processor'],['camera','Camera'],['battery','Battery'],['ram','RAM']].map(([k,l])=>(
-            <div key={k}><Label>{l}</Label><input value={form.specs[k]||''} onChange={e=>setSpec(k,e.target.value)} placeholder={l} style={inp} /></div>
-          ))}
+      {!selCatalogId && (
+        <div style={{ textAlign:'center', padding:'3rem', color:'#727785', background:'#F2F4F6', borderRadius:12 }}>
+          <div style={{ fontSize:36, marginBottom:'1rem' }}>🖼</div>
+          <p style={{ fontWeight:600 }}>Select a phone model above to manage its images</p>
         </div>
-      </div>
+      )}
 
-      <div style={{ display:'flex', gap:'1.25rem', marginBottom:'1.5rem' }}>
-        {[['featured','⭐ Featured'],['available','✅ Available']].map(([k,l])=>(
-          <label key={k} style={{ display:'flex', alignItems:'center', gap:'.4rem', cursor:'pointer', fontSize:'.875rem', fontWeight:500 }}>
-            <input type="checkbox" checked={form[k]} onChange={e=>set(k,e.target.checked)} style={{ accentColor:'#005BBF', width:'auto' }} />{l}
-          </label>
-        ))}
-      </div>
+      {selCatalogId && loaded && (
+        <>
+          {variantColors.length > 0 && (
+            <div style={{ marginBottom:'1rem', padding:'.65rem 1rem', background:'#E8F0FE', borderRadius:8, border:'1px solid #ADC7FF', fontSize:'.8rem', color:'#1967D2' }}>
+              <strong>Variants in inventory:</strong> {variantColors.join(', ')} — add images for each colour so customers see the correct photos
+            </div>
+          )}
 
-      <div style={{ display:'flex', gap:'.55rem' }}>
-        <button onClick={handleSave} disabled={saving} style={{ background:saving?'#ADC7FF':'#005BBF', color:'#fff', border:'none', borderRadius:8, padding:'.6rem 1.4rem', fontFamily:'inherit', fontWeight:700, fontSize:'.875rem', cursor:saving?'default':'pointer' }}>
-          {saving?'⏳ Saving…':`✓ ${editPhone?'Update Phone':'Add Phone'}`}
-        </button>
-        <button onClick={onCancel} style={{ background:'#F2F4F6', color:'#191C1E', border:'1px solid #C1C6D6', borderRadius:8, padding:'.6rem 1.25rem', fontFamily:'inherit', fontWeight:600, fontSize:'.875rem', cursor:'pointer' }}>Cancel</button>
-      </div>
+          {/* Per-colour image management */}
+          {allColors.map(color => {
+            const imgs = colorImages[color] || []
+            const hex  = COLOR_HEX[color] || '#999'
+            const isLight = ['White','Porcelain','Pearl','Snow','Starlight','Moonlight White','White Titanium','Natural Titanium','Cream','Sand','F5F5F5'].some(l => color.includes(l))
+
+            return (
+              <div key={color} style={{ marginBottom:'1.5rem', border:'1px solid #C1C6D6', borderRadius:12, overflow:'hidden' }}>
+                {/* Color header */}
+                <div style={{ display:'flex', alignItems:'center', gap:'.75rem', padding:'.75rem 1rem', background:imgs.length?'#fff':'#F2F4F6', borderBottom:'1px solid #E6E8EA' }}>
+                  <div style={{ width:22, height:22, borderRadius:'50%', background:hex, flexShrink:0, border: isLight ? '1.5px solid #C1C6D6' : 'none', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }} />
+                  <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'.9rem' }}>{color}</span>
+                  <span style={{ fontSize:'.72rem', color:'#727785', marginLeft:'auto' }}>{imgs.length} image{imgs.length!==1?'s':''}</span>
+                  {variantColors.includes(color) && (
+                    <span style={{ fontSize:'.65rem', fontWeight:700, padding:'.18rem .5rem', borderRadius:999, background:'#E6F4EA', color:'#137333' }}>In stock</span>
+                  )}
+                </div>
+
+                <div style={{ padding:'1rem' }}>
+                  {/* Thumbnail grid */}
+                  {imgs.length > 0 && (
+                    <div style={{ display:'flex', gap:'.6rem', flexWrap:'wrap', marginBottom:'.85rem' }}>
+                      {imgs.map((url, i) => (
+                        <div key={i} style={{ position:'relative', flexShrink:0 }}>
+                          <div style={{ width:80, height:100, background:'#F2F4F6', borderRadius:8, overflow:'hidden', border:'1px solid #E6E8EA', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                            <img src={url} alt="" style={{ width:'100%', height:'100%', objectFit:'contain' }}
+                              onError={e => { e.target.style.display='none'; e.target.parentNode.style.background='#FCE8E6' }} />
+                          </div>
+                          <button onClick={() => removeImage(color, i)}
+                            style={{ position:'absolute', top:-6, right:-6, width:20, height:20, borderRadius:'50%', background:'#C5221F', color:'#fff', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>
+                            ✕
+                          </button>
+                          <p style={{ fontSize:'.6rem', color:'#727785', textAlign:'center', marginTop:'.2rem' }}>#{i+1}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add image URL */}
+                  <div style={{ display:'flex', gap:'.5rem' }}>
+                    <input
+                      value={newUrls[color] || ''}
+                      onChange={e => setNewUrls(prev => ({ ...prev, [color]: e.target.value }))}
+                      placeholder={`Paste image URL for ${color}…`}
+                      style={{ ...I, flex:1 }}
+                      onKeyDown={e => e.key === 'Enter' && addImage(color)}
+                    />
+                    <button onClick={() => addImage(color)}
+                      style={{ background:'#005BBF', color:'#fff', border:'none', borderRadius:8, padding:'.45rem .9rem', fontFamily:'inherit', fontWeight:700, fontSize:'.82rem', cursor:'pointer', whiteSpace:'nowrap' }}>
+                      + Add
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Save button */}
+          <div style={{ position:'sticky', bottom:24, background:'#fff', padding:'1rem', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,.12)', border:'1px solid #C1C6D6', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem', flexWrap:'wrap' }}>
+            <p style={{ fontSize:'.8rem', color:'#414754' }}>
+              {Object.values(colorImages).flat().length} total image{Object.values(colorImages).flat().length!==1?'s':''} across {Object.keys(colorImages).length} colour{Object.keys(colorImages).length!==1?'s':''}
+            </p>
+            <Btn onClick={saveImages} disabled={saving}>
+              {saving ? '⏳ Saving…' : '✓ Save All Images'}
+            </Btn>
+          </div>
+        </>
+      )}
     </div>
   )
 }
 
 /* ═══════════════════════════════════════════════
-   MANAGE CATALOG TAB
+   LOGIN SCREEN
 ═══════════════════════════════════════════════ */
-function TabCatalog() {
-  const [catalog,  setCatalog]  = useState(loadCatalog)
-  const [selBrand, setSelBrand] = useState(Object.keys(loadCatalog())[0])
-  const [newBrand, setNewBrand] = useState('')
-  const [newModel, setNewModel] = useState('')
-  const [saved,    setSaved]    = useState(false)
+function LoginScreen() {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState('')
 
-  const save = (u) => { setCatalog(u); saveCatalog(u); setSaved(true); setTimeout(()=>setSaved(false),1800) }
-  const addBrand   = () => { const b=newBrand.trim(); if(!b||catalog[b])return; save({...catalog,[b]:[]}); setSelBrand(b); setNewBrand('') }
-  const removeBrand= (b) => { if(!confirm(`Remove "${b}" and all its models?`))return; const{[b]:_,...rest}=catalog; save(rest); setSelBrand(Object.keys(rest)[0]||'') }
-  const addModel   = () => { const m=newModel.trim(); if(!m||(catalog[selBrand]||[]).includes(m))return; save({...catalog,[selBrand]:[...(catalog[selBrand]||[]),m]}); setNewModel('') }
-  const removeModel= m => save({...catalog,[selBrand]:catalog[selBrand].filter(x=>x!==m)})
-  const moveModel  = (m,dir) => { const list=[...catalog[selBrand]],idx=list.indexOf(m),ni=idx+dir; if(ni<0||ni>=list.length)return; [list[idx],list[ni]]=[list[ni],list[idx]]; save({...catalog,[selBrand]:list}) }
+  const login = async () => {
+    if (!username.trim()||!password) {setError('Enter username and password'); return}
+    setLoading(true); setError('')
+    try {
+      await signInWithEmailAndPassword(auth, `${username.trim().toLowerCase()}${DOMAIN}`, password)
+    } catch(err) {
+      if (['auth/user-not-found','auth/wrong-password','auth/invalid-credential'].includes(err.code)) setError('Wrong username or password')
+      else if (err.code==='auth/too-many-requests') setError('Too many attempts. Try again later.')
+      else setError('Login failed. Check your internet connection.')
+    } finally { setLoading(false) }
+  }
 
   return (
-    <div>
-      <p style={{ color:'#414754', fontSize:'.82rem', marginBottom:'1.25rem', padding:'.85rem 1rem', background:'#E8F0FE', border:'1.5px solid #ADC7FF', borderRadius:10 }}>
-        Manage brands and models in the Add Phone dropdowns.
-        {saved && <span style={{ marginLeft:'.75rem', color:'#005BBF', fontWeight:700 }}>✓ Saved</span>}
-      </p>
-      <div style={{ display:'grid', gridTemplateColumns:'200px 1fr', gap:'2rem', alignItems:'start' }} className="cat-g">
-        <div>
-          <Label>Brands</Label>
-          <div style={{ border:'1px solid #C1C6D6', borderRadius:10, overflow:'hidden', marginBottom:'.65rem' }}>
-            {Object.keys(catalog).map((b,i)=>(
-              <div key={b} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'.5rem .75rem', background:b===selBrand?'#E8F0FE':i%2===0?'#fff':'#F2F4F6', borderBottom:'1px solid #C1C6D6', cursor:'pointer' }}
-                onClick={()=>setSelBrand(b)}>
-                <span style={{ fontSize:'.85rem', fontWeight:b===selBrand?700:400, color:b===selBrand?'#005BBF':'#191C1E' }}>{BRAND_ICONS[b]||'📱'} {b}</span>
-                <button onClick={e=>{e.stopPropagation();removeBrand(b)}} style={{ background:'none', border:'none', cursor:'pointer', color:'#727785', fontSize:13 }}>✕</button>
-              </div>
-            ))}
-          </div>
-          <div style={{ display:'flex', gap:'.4rem' }}>
-            <input value={newBrand} onChange={e=>setNewBrand(e.target.value)} placeholder="New brand…" style={{ ...inp, flex:1 }} onKeyDown={e=>e.key==='Enter'&&addBrand()} />
-            <button onClick={addBrand} style={{ background:'#005BBF', color:'#fff', border:'none', borderRadius:7, padding:'.35rem .75rem', fontFamily:'inherit', fontWeight:700, fontSize:'.78rem', cursor:'pointer' }}>Add</button>
-          </div>
+    <div className="pt" style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#F7F9FB'}}>
+      <div style={{width:'100%',maxWidth:380,padding:'2.5rem',background:'#fff',borderRadius:20,border:'1px solid #C1C6D6',boxShadow:'0 4px 24px rgba(0,0,0,.08)'}}>
+        <div style={{textAlign:'center',marginBottom:'2rem'}}>
+          <div style={{width:52,height:52,background:'#005BBF',borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto .85rem',fontSize:24}}>📱</div>
+          <h1 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'1.25rem'}}>Nova Mobiles Plus</h1>
+          <p style={{fontSize:'.8rem',color:'#727785',marginTop:'.25rem'}}>Admin Panel</p>
         </div>
-        <div>
-          {selBrand && <>
-            <Label>Models — {selBrand}</Label>
-            <div style={{ border:'1px solid #C1C6D6', borderRadius:10, overflow:'hidden', marginBottom:'.65rem', maxHeight:360, overflowY:'auto' }}>
-              {(catalog[selBrand]||[]).length===0 && <div style={{ padding:'1rem', textAlign:'center', color:'#727785', fontSize:'.82rem' }}>No models yet.</div>}
-              {(catalog[selBrand]||[]).map((m,i,arr)=>(
-                <div key={m} style={{ display:'flex', alignItems:'center', gap:'.5rem', padding:'.48rem .75rem', background:i%2===0?'#fff':'#F2F4F6', borderBottom:i<arr.length-1?'1px solid #C1C6D6':'none' }}>
-                  <span style={{ flex:1, fontSize:'.85rem' }}>{m}</span>
-                  <button onClick={()=>moveModel(m,-1)} disabled={i===0} style={{ background:'none', border:'none', cursor:i===0?'default':'pointer', color:'#727785', fontSize:13, opacity:i===0?.3:1 }}>↑</button>
-                  <button onClick={()=>moveModel(m,1)} disabled={i===arr.length-1} style={{ background:'none', border:'none', cursor:i===arr.length-1?'default':'pointer', color:'#727785', fontSize:13, opacity:i===arr.length-1?.3:1 }}>↓</button>
-                  <button onClick={()=>removeModel(m)} style={{ background:'none', border:'none', cursor:'pointer', color:'#C5221F', fontSize:13 }}>✕</button>
-                </div>
-              ))}
-            </div>
-            <div style={{ display:'flex', gap:'.4rem' }}>
-              <input value={newModel} onChange={e=>setNewModel(e.target.value)} placeholder={`New ${selBrand} model…`} style={{ ...inp, flex:1 }} onKeyDown={e=>e.key==='Enter'&&addModel()} />
-              <button onClick={addModel} style={{ background:'#005BBF', color:'#fff', border:'none', borderRadius:7, padding:'.35rem .75rem', fontFamily:'inherit', fontWeight:700, fontSize:'.78rem', cursor:'pointer' }}>Add</button>
-            </div>
-          </>}
+        <div style={{marginBottom:'.75rem'}}>
+          <Lbl>Username</Lbl>
+          <Inp value={username} onChange={e=>{setUsername(e.target.value);setError('')}} placeholder="admin"/>
         </div>
+        <div style={{marginBottom:'1.25rem'}}>
+          <Lbl>Password</Lbl>
+          <input id="adm-pw" type="password" value={password} onChange={e=>{setPassword(e.target.value);setError('')}}
+            placeholder="••••••••" style={I} onKeyDown={e=>e.key==='Enter'&&login()}/>
+        </div>
+        {error&&<div style={{background:'#FCE8E6',color:'#C5221F',padding:'.6rem .85rem',borderRadius:8,fontSize:'.82rem',fontWeight:600,marginBottom:'1rem'}}>{error}</div>}
+        <button onClick={login} disabled={loading}
+          style={{width:'100%',background:loading?'#ADC7FF':'#005BBF',color:'#fff',border:'none',borderRadius:10,padding:'.75rem',fontFamily:'inherit',fontWeight:700,fontSize:'.95rem',cursor:loading?'default':'pointer'}}>
+          {loading?'⏳ Signing in…':'Sign In'}
+        </button>
       </div>
-      <style>{`@media(max-width:600px){.cat-g{grid-template-columns:1fr!important}}`}</style>
     </div>
   )
 }
@@ -506,34 +862,27 @@ function TabCatalog() {
    MAIN ADMIN
 ═══════════════════════════════════════════════ */
 export default function Admin() {
-  const [user,    setUser]    = useState(undefined) // undefined = checking, null = logged out
+  const [user,    setUser]    = useState(undefined)
   const [phones,  setPhones]  = useState([])
+  const [catalog, setCatalog] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState(false)
   const [tab,     setTab]     = useState('inventory')
   const [editing, setEditing] = useState(null)
-  const catalog = loadCatalog()
+  const {show, Toast} = useToast()
 
-  // Listen to Firebase auth state — persists across page refreshes
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u)
-    })
+    const unsub = onAuthStateChanged(auth, u => setUser(u))
     return unsub
   }, [])
 
-  // Load phones when logged in
-  useEffect(() => {
-    if (user) {
-      setLoading(true)
-      getAllPhones().then(d => { setPhones(d); setLoading(false) })
-    }
-  }, [user])
-
-  const load = () => {
+  const load = async () => {
     setLoading(true)
-    getAllPhones().then(d => { setPhones(d); setLoading(false) })
+    const [p, c] = await Promise.all([getAllPhones(), getAllCatalog()])
+    setPhones(p); setCatalog(c); setLoading(false)
   }
+
+  useEffect(() => { if (user) load() }, [user])
 
   const handleSave = async (data) => {
     setSaving(true)
@@ -541,76 +890,67 @@ export default function Admin() {
       if (editing) { await updatePhone(editing.id, data) }
       else         { await addPhone(data) }
       setEditing(null); setTab('inventory'); load()
-    } catch {
-      alert('Save failed — check your Firestore rules in Firebase Console')
-    } finally {
-      setSaving(false)
-    }
+      show(editing ? 'Variant updated' : 'Phone added to inventory')
+    } catch { show('Save failed — check Firestore rules','error') }
+    finally { setSaving(false) }
   }
 
   const handleSavePrice = async (id, price) => {
-    await updatePhone(id, { price })
-    setPhones(prev => prev.map(p => p.id===id ? {...p,price} : p))
+    await updatePhone(id, {price})
+    setPhones(prev=>prev.map(p=>p.id===id?{...p,price}:p))
   }
 
-  const handleLogout = async () => {
-    await signOut(auth)
-    setPhones([])
-    setTab('inventory')
-    setEditing(null)
-  }
+  const logout = async () => { await signOut(auth); setPhones([]); setCatalog([]); setTab('inventory'); setEditing(null) }
 
-  // Checking auth state
-  if (user === undefined) return (
-    <div className="pt" style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ width:28, height:28, border:'2.5px solid #005BBF', borderTopColor:'transparent', borderRadius:'50%', animation:'spin .7s linear infinite' }} />
+  if (user===undefined) return (
+    <div className="pt" style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{width:28,height:28,border:'2.5px solid #005BBF',borderTopColor:'transparent',borderRadius:'50%',animation:'spin .7s linear infinite'}}/>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
 
-  // Not logged in
-  if (!user) return <LoginScreen />
+  if (!user) return <LoginScreen/>
 
-  // Logged in
   const TABS = [
-    { id:'inventory', label:`📦 Inventory (${phones.filter(p=>p.available).length} available)` },
-    { id:'add',       label: editing ? '✏️ Edit Phone' : '➕ Add Phone' },
-    { id:'prices',    label:'💰 Edit Prices' },
-    { id:'catalog',   label:'📋 Manage Catalog' },
+    {id:'inventory', label:`📦 Inventory (${phones.filter(p=>p.available).length})`},
+    {id:'catalog',   label:`📋 Catalog (${catalog.length})`},
+    {id:'add',       label: editing ? '✏️ Edit Variant' : '➕ Add to Inventory'},
+    {id:'images',    label:'🖼 Images'},
+    {id:'prices',    label:'💰 Edit Prices'},
   ]
 
   return (
-    <div className="pt" style={{ paddingBottom:'5rem', background:'var(--bg)', minHeight:'100vh' }}>
-      <div style={{ maxWidth:1280, margin:'0 auto', padding:'2rem 2.5rem' }}>
-
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'2rem', flexWrap:'wrap', gap:'1rem' }}>
+    <div className="pt" style={{paddingBottom:'5rem',background:'var(--bg)',minHeight:'100vh'}}>
+      {Toast}
+      <div style={{maxWidth:1280,margin:'0 auto',padding:'2rem 2.5rem'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'2rem',flexWrap:'wrap',gap:'1rem'}}>
           <div>
-            <h1 style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:'clamp(1.5rem,3vw,2rem)', letterSpacing:'-.02em' }}>Admin Panel</h1>
-            <p style={{ fontSize:'.78rem', color:'#727785', marginTop:'.2rem' }}>
-              Signed in as <strong>{user.email}</strong>
-            </p>
+            <h1 style={{fontFamily:'var(--font-display)',fontWeight:900,fontSize:'clamp(1.4rem,3vw,2rem)',letterSpacing:'-.02em'}}>Admin Panel</h1>
+            <p style={{fontSize:'.78rem',color:'#727785',marginTop:'.2rem'}}>Signed in as <strong>{user.email}</strong></p>
           </div>
-          <div style={{ display:'flex', gap:'.65rem', alignItems:'center' }}>
-            {loading && <span style={{ fontSize:'.78rem', color:'#727785' }}>⏳ Loading…</span>}
-            <button onClick={load} style={{ background:'#E8F0FE', color:'#1967D2', border:'none', borderRadius:8, padding:'.4rem .85rem', fontFamily:'inherit', fontWeight:600, fontSize:'.8rem', cursor:'pointer' }}>↻ Refresh</button>
-            <button onClick={handleLogout} style={{ background:'#F2F4F6', color:'#191C1E', border:'1px solid #C1C6D6', borderRadius:8, padding:'.4rem .9rem', fontFamily:'inherit', fontWeight:600, fontSize:'.8rem', cursor:'pointer' }}>Sign Out</button>
+          <div style={{display:'flex',gap:'.55rem',alignItems:'center'}}>
+            {loading&&<span style={{fontSize:'.78rem',color:'#727785'}}>⏳ Loading…</span>}
+            <button onClick={load} style={{background:'#E8F0FE',color:'#1967D2',border:'none',borderRadius:8,padding:'.4rem .85rem',fontFamily:'inherit',fontWeight:600,fontSize:'.8rem',cursor:'pointer'}}>↻ Refresh</button>
+            <button onClick={logout} style={{background:'#F2F4F6',color:'#191C1E',border:'1px solid #C1C6D6',borderRadius:8,padding:'.4rem .9rem',fontFamily:'inherit',fontWeight:600,fontSize:'.8rem',cursor:'pointer'}}>Sign Out</button>
           </div>
         </div>
 
-        <div style={{ display:'flex', gap:'.3rem', marginBottom:'2rem', borderBottom:'1px solid #C1C6D6', paddingBottom:'.1rem', overflowX:'auto' }}>
-          {TABS.map(t => (
-            <button key={t.id} onClick={()=>{ setTab(t.id); if(t.id!=='add') setEditing(null) }}
-              style={{ padding:'.5rem .95rem', borderRadius:'8px 8px 0 0', border:`1px solid ${tab===t.id?'#C1C6D6':'transparent'}`, borderBottom:tab===t.id?'2px solid #005BBF':'1px solid transparent', background:tab===t.id?'#E8F0FE':'transparent', color:tab===t.id?'#005BBF':'#414754', fontWeight:tab===t.id?700:500, fontFamily:'inherit', fontSize:'.82rem', cursor:'pointer', whiteSpace:'nowrap', transition:'all .12s' }}>
+        <div style={{display:'flex',gap:'.3rem',marginBottom:'2rem',borderBottom:'1px solid #C1C6D6',paddingBottom:'.1rem',overflowX:'auto'}}>
+          {TABS.map(t=>(
+            <button key={t.id} onClick={()=>{setTab(t.id);if(t.id!=='add')setEditing(null)}}
+              style={{padding:'.5rem .95rem',borderRadius:'8px 8px 0 0',border:`1px solid ${tab===t.id?'#C1C6D6':'transparent'}`,borderBottom:tab===t.id?'2px solid #005BBF':'1px solid transparent',background:tab===t.id?'#E8F0FE':'transparent',color:tab===t.id?'#005BBF':'#414754',fontWeight:tab===t.id?700:500,fontFamily:'inherit',fontSize:'.82rem',cursor:'pointer',whiteSpace:'nowrap',transition:'all .12s'}}>
               {t.label}
             </button>
           ))}
         </div>
 
-        {tab==='inventory' && <TabInventory phones={phones} setPhones={setPhones} onEdit={p=>{setEditing(p);setTab('add')}} />}
-        {tab==='add'       && <TabAddEdit   catalog={catalog} editPhone={editing} onSave={handleSave} onCancel={()=>{setEditing(null);setTab('inventory')}} saving={saving} />}
-        {tab==='prices'    && <TabPrices    phones={phones} onSavePrice={handleSavePrice} />}
-        {tab==='catalog'   && <TabCatalog />}
+        {tab==='inventory' && <TabInventory phones={phones} setPhones={setPhones} onEdit={p=>{setEditing(p);setTab('add')}}/>}
+        {tab==='catalog'   && <TabCatalog   catalog={catalog} setCatalog={setCatalog} showToast={show}/>}
+        {tab==='add'       && <TabAddInventory catalog={catalog} editPhone={editing} onSave={handleSave} onCancel={()=>{setEditing(null);setTab('inventory')}} saving={saving}/>}
+        {tab==='prices'    && <TabPrices    phones={phones} onSavePrice={handleSavePrice}/> }
+        {tab==='images'    && <TabImages    catalog={catalog} phones={phones} showToast={show}/>}
       </div>
+      <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
     </div>
   )
 }
