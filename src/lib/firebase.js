@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
+import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDuEeOBGHyI3yIyNmv-Uc-LbnsFPEsp-Ws",
@@ -13,5 +14,44 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 
-export const db   = getFirestore(app)
-export const auth = getAuth(app)
+export const db      = getFirestore(app)
+export const auth    = getAuth(app)
+export const storage = getStorage(app)
+
+/**
+ * Upload a file to Firebase Storage.
+ * @param {File}     file       — the File object from an input element
+ * @param {string}   path       — storage path e.g. "catalog/pixel-8-pro/obsidian/photo1.jpg"
+ * @param {Function} onProgress — called with 0-100 during upload
+ * @returns {Promise<string>}   — resolves to the public download URL
+ */
+export function uploadImage(file, path, onProgress) {
+  return new Promise((resolve, reject) => {
+    const storageRef = ref(storage, path)
+    const task       = uploadBytesResumable(storageRef, file, { contentType: file.type })
+
+    task.on(
+      'state_changed',
+      (snap) => {
+        if (onProgress) onProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100))
+      },
+      reject,
+      async () => {
+        try {
+          const url = await getDownloadURL(task.snapshot.ref)
+          resolve(url)
+        } catch (e) { reject(e) }
+      }
+    )
+  })
+}
+
+/**
+ * Delete a file from Firebase Storage by its full download URL.
+ */
+export async function deleteImage(url) {
+  try {
+    const storageRef = ref(storage, url)
+    await deleteObject(storageRef)
+  } catch { /* ignore if already deleted */ }
+}

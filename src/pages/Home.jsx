@@ -1,28 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { getFeaturedPhonesInstant, getReviewsInstant } from '../lib/phones'
+import { getFeaturedPhonesInstant, getReviewsInstant, getBannersInstant } from '../lib/phones'
 import { buildWhatsAppUrl } from '../lib/constants'
 import ProductCard from '../components/ProductCard'
 
-/* ── Auto-detect banner images (banner1.jpg, banner2.jpg, …) ─── */
+/* ── Load banners from Firebase ──────────────────── */
 function useBanners() {
   const [banners, setBanners] = useState([])
   useEffect(() => {
-    const found = []
-    const tryExt = (n, exts, ei, onFound, onStop) => {
-      if (ei >= exts.length) { onStop(); return }
-      const img = new Image()
-      img.onload = () => onFound(`/images/Banners/banner${n}.${exts[ei]}`)
-      img.onerror = () => tryExt(n, exts, ei + 1, onFound, onStop)
-      img.src = `/images/Banners/banner${n}.${exts[ei]}`
-    }
-    const checkNext = (n) => {
-      tryExt(n, ['jpg','jpeg','png','webp'], 0,
-        (src) => { found.push(src); checkNext(n + 1) },
-        ()    => { setBanners([...found]) }
-      )
-    }
-    checkNext(1)
+    getBannersInstant(items => setBanners(items.map(b => b.url)))
   }, [])
   return banners
 }
