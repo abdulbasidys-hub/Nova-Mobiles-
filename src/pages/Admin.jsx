@@ -407,10 +407,12 @@ function CatalogForm({initial, onSave, onCancel, saving}) {
 }
 
 function TabCatalog({catalog, setCatalog, showToast}) {
-  const [adding,  setAdding]  = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [saving,  setSaving]  = useState(false)
-  const [deleting,setDeleting]= useState({})
+  const [adding,   setAdding]   = useState(false)
+  const [editing,  setEditing]  = useState(null)
+  const [saving,   setSaving]   = useState(false)
+  const [deleting, setDeleting] = useState({})
+  const [collapsed,setCollapsed]= useState({})   // brand -> bool
+  const [expanded, setExpanded] = useState({})   // cat.id -> bool
 
   const save = async (data) => {
     setSaving(true)
@@ -458,6 +460,7 @@ function TabCatalog({catalog, setCatalog, showToast}) {
   return (
     <div>
       <SectionHead title="Product Catalog" subtitle="Master specs per model. Editing here updates all variants automatically." action={<Btn onClick={()=>setAdding(true)}>+ New Model</Btn>}/>
+
       {catalog.length===0&&(
         <div style={{textAlign:'center',padding:'4rem',background:'#F2F4F6',borderRadius:12,color:'#727785'}}>
           <div style={{fontSize:40,marginBottom:'1rem'}}>📋</div>
@@ -465,33 +468,70 @@ function TabCatalog({catalog, setCatalog, showToast}) {
           <Btn onClick={()=>setAdding(true)}>+ Add First Model</Btn>
         </div>
       )}
+
       {Object.entries(grouped).map(([brand,list])=>(
-        <div key={brand} style={{marginBottom:'2rem'}}>
-          <div style={{display:'flex',alignItems:'center',gap:'.55rem',marginBottom:'.75rem',paddingBottom:'.45rem',borderBottom:'2px solid #E6E8EA'}}>
-            <span>{BRAND_ICONS[brand]||'📱'}</span>
-            <h3 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'.95rem'}}>{brand}</h3>
-          </div>
-          {list.map(cat=>(
-            <div key={cat.id} style={{background:'#fff',border:'1px solid #C1C6D6',borderRadius:10,marginBottom:'.5rem',overflow:'hidden',opacity:deleting[cat.id]?.5:1}}>
-              <div style={{display:'flex',alignItems:'center',gap:'1rem',padding:'.7rem 1rem'}}>
-                <div style={{flex:1}}>
-                  <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.9rem'}}>{cat.model}</p>
-                  <p style={{fontSize:'.72rem',color:'#727785',marginTop:'.1rem'}}>{[cat.processor,cat.display].filter(Boolean).join(' · ')||'No specs yet'}</p>
+        <div key={brand} style={{marginBottom:'1.25rem',border:'1px solid #C1C6D6',borderRadius:12,overflow:'hidden'}}>
+
+          {/* Collapsible brand header */}
+          <button
+            onClick={()=>setCollapsed(prev=>({...prev,[brand]:!prev[brand]}))}
+            style={{width:'100%',display:'flex',alignItems:'center',gap:'.65rem',padding:'.75rem 1rem',background:collapsed[brand]?'#F2F4F6':'#E8F0FE',border:'none',cursor:'pointer',textAlign:'left'}}>
+            <span style={{fontSize:18}}>{BRAND_ICONS[brand]||'📱'}</span>
+            <span style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'.95rem',flex:1}}>{brand}</span>
+            <span style={{fontSize:'.72rem',color:'#727785',fontWeight:600}}>{list.length} model{list.length!==1?'s':''}</span>
+            <span style={{fontSize:12,color:'#727785',marginLeft:'.25rem'}}>{collapsed[brand]?'▼':'▲'}</span>
+          </button>
+
+          {/* Cards grid — hidden when collapsed */}
+          {!collapsed[brand]&&(
+            <div style={{padding:'.75rem',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:'.6rem',background:'#fff',borderTop:'1px solid #E6E8EA'}}>
+              {list.map(cat=>(
+                <div key={cat.id}
+                  onClick={()=>setExpanded(prev=>({...prev,[cat.id]:!prev[cat.id]}))}
+                  style={{border:`1px solid ${expanded[cat.id]?'#005BBF':'#C1C6D6'}`,borderRadius:10,overflow:'hidden',cursor:'pointer',opacity:deleting[cat.id]?.5:1,transition:'border-color .15s',background:expanded[cat.id]?'#F7FAFF':'#fff'}}>
+
+                  {/* Collapsed card — just the name */}
+                  <div style={{padding:'.65rem .75rem',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'.4rem'}}>
+                    <div>
+                      <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.82rem',lineHeight:1.2}}>{cat.model}</p>
+                      {cat.availableColors?.length>0&&(
+                        <p style={{fontSize:'.65rem',color:'#727785',marginTop:'.18rem'}}>{cat.availableColors.length} colour{cat.availableColors.length!==1?'s':''}</p>
+                      )}
+                    </div>
+                    <span style={{fontSize:11,color:'#727785',flexShrink:0}}>{expanded[cat.id]?'▲':'▼'}</span>
+                  </div>
+
+                  {/* Expanded details */}
+                  {expanded[cat.id]&&(
+                    <div style={{borderTop:'1px solid #E6E8EA',padding:'.65rem .75rem'}} onClick={e=>e.stopPropagation()}>
+                      {/* Spec preview */}
+                      {[
+                        ['Display',cat.display],['Camera',cat.camera],['Battery',cat.battery],
+                        ['Charging',cat.charging],['OS',cat.os],['Dimensions',cat.dimensions],['Weight',cat.weight]
+                      ].filter(([,v])=>v).map(([label,val])=>(
+                        <div key={label} style={{fontSize:'.72rem',marginBottom:'.25rem',display:'flex',gap:'.35rem'}}>
+                          <span style={{color:'#727785',fontWeight:600,flexShrink:0,minWidth:60}}>{label}</span>
+                          <span style={{color:'#191C1E'}}>{val.split('\n')[0]}{val.includes('\n')?'…':''}</span>
+                        </div>
+                      ))}
+                      {cat.availableColors?.filter(Boolean).length>0&&(
+                        <div style={{marginTop:'.4rem',display:'flex',flexWrap:'wrap',gap:4}}>
+                          {cat.availableColors.filter(Boolean).map(col=>(
+                            <span key={col} style={{fontSize:'.62rem',background:'#E8F0FE',color:'#1967D2',padding:'.1rem .45rem',borderRadius:999,fontWeight:600}}>{col}</span>
+                          ))}
+                        </div>
+                      )}
+                      {/* Actions */}
+                      <div style={{display:'flex',gap:'.4rem',marginTop:'.65rem'}}>
+                        <button onClick={()=>setEditing(cat)} style={{flex:1,background:'#E8F0FE',color:'#1967D2',border:'none',borderRadius:7,padding:'.32rem 0',fontFamily:'inherit',fontWeight:700,fontSize:'.75rem',cursor:'pointer'}}>Edit</button>
+                        <button onClick={()=>del(cat)} disabled={deleting[cat.id]} style={{flex:1,background:'#FCE8E6',color:'#C5221F',border:'none',borderRadius:7,padding:'.32rem 0',fontFamily:'inherit',fontWeight:700,fontSize:'.75rem',cursor:'pointer'}}>{deleting[cat.id]?'…':'Delete'}</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div style={{display:'flex',gap:'.35rem'}}>
-                  <button onClick={()=>setEditing(cat)} style={{background:'#E8F0FE',color:'#1967D2',border:'none',borderRadius:7,padding:'.28rem .7rem',fontFamily:'inherit',fontWeight:700,fontSize:'.75rem',cursor:'pointer'}}>Edit Specs</button>
-                  <button onClick={()=>del(cat)} style={{background:'#FCE8E6',color:'#C5221F',border:'none',borderRadius:7,padding:'.28rem .7rem',fontFamily:'inherit',fontWeight:700,fontSize:'.75rem',cursor:'pointer'}}>Delete</button>
-                </div>
-              </div>
-              {(cat.camera||cat.battery||cat.os)&&(
-                <div style={{padding:'.4rem 1rem .6rem',borderTop:'1px solid #F2F4F6',display:'flex',gap:'1.5rem',flexWrap:'wrap'}}>
-                  {[['📸',cat.camera],['🔋',cat.battery],['📱',cat.os]].filter(([,v])=>v).map(([icon,val])=>(
-                    <span key={val} style={{fontSize:'.72rem',color:'#414754'}}>{icon} {val}</span>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
-          ))}
+          )}
         </div>
       ))}
     </div>
