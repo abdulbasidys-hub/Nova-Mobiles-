@@ -94,10 +94,9 @@ const SectionHead = ({title, subtitle, action}) => (
 
 /* ═══════════════════════════════════════════════
    IMAGE UPLOADER COMPONENT
-   Reusable — used in both Catalog and Inventory
 ═══════════════════════════════════════════════ */
-function ImageUploader({ storagePath, onUploaded, label='Upload Photo', hint }) {
-  const [progress, setProgress] = useState(null) // null=idle, 0-100=uploading
+function ImageUploader({ storagePath, onUploaded, label='Upload Photo', hint, compact }) {
+  const [progress, setProgress] = useState(null)
   const [error,    setError]    = useState('')
   const inputRef = useRef()
 
@@ -106,50 +105,57 @@ function ImageUploader({ storagePath, onUploaded, label='Upload Photo', hint }) 
     if (!file) return
     if (!file.type.startsWith('image/')) { setError('Please select an image file'); return }
     if (file.size > 10 * 1024 * 1024)   { setError('Image must be under 10MB'); return }
-
     setError('')
     setProgress(0)
     const ext  = file.name.split('.').pop().toLowerCase()
     const path = `${storagePath}/${Date.now()}.${ext}`
-
     try {
       const url = await uploadImage(file, path, setProgress)
       onUploaded(url)
       setProgress(null)
-    } catch (err) {
+    } catch {
       setError('Upload failed — check Firebase Storage rules')
       setProgress(null)
     }
-    // Reset input so same file can be re-selected
     e.target.value = ''
+  }
+
+  const btnStyle = {
+    display:'flex', alignItems:'center', gap:'.4rem',
+    padding: compact ? '.38rem .75rem' : '.55rem 1rem',
+    background: progress!==null ? '#E8F0FE' : '#fff',
+    border:'2px dashed #C1C6D6', borderRadius:8,
+    fontFamily:'inherit', fontWeight:600,
+    fontSize: compact ? '.78rem' : '.82rem',
+    color: progress!==null ? '#1967D2' : '#414754',
+    cursor: progress!==null ? 'default' : 'pointer',
+    transition:'all .15s',
+    width: compact ? 'auto' : '100%',
+    justifyContent:'center',
   }
 
   return (
     <div>
       <input ref={inputRef} type="file" accept="image/*" onChange={handleFile}
         style={{display:'none'}} capture="environment" />
-
-      <button type="button" onClick={() => inputRef.current?.click()} disabled={progress !== null}
-        style={{ display:'flex', alignItems:'center', gap:'.5rem', padding:'.55rem 1rem', background: progress!==null?'#E8F0FE':'#fff', border:'2px dashed #C1C6D6', borderRadius:10, fontFamily:'inherit', fontWeight:600, fontSize:'.82rem', color:progress!==null?'#1967D2':'#414754', cursor:progress!==null?'default':'pointer', transition:'all .15s', width:'100%', justifyContent:'center' }}>
+      <button type="button" onClick={() => inputRef.current?.click()} disabled={progress !== null} style={btnStyle}>
         {progress !== null ? (
           <>
-            <div style={{width:14,height:14,border:'2px solid #1967D2',borderTopColor:'transparent',borderRadius:'50%',animation:'spin .6s linear infinite',flexShrink:0}}/>
-            Uploading… {progress}%
+            <div style={{width:12,height:12,border:'2px solid #1967D2',borderTopColor:'transparent',borderRadius:'50%',animation:'spin .6s linear infinite',flexShrink:0}}/>
+            {compact ? `${progress}%` : `Uploading… ${progress}%`}
           </>
         ) : (
           <>
-            <span className="material-symbols-outlined" style={{fontSize:18}}>add_photo_alternate</span>
+            <span className="material-symbols-outlined" style={{fontSize:compact?14:18}}>add_photo_alternate</span>
             {label}
           </>
         )}
       </button>
-
       {progress !== null && (
-        <div style={{marginTop:'.4rem',height:4,background:'#E6E8EA',borderRadius:99,overflow:'hidden'}}>
+        <div style={{marginTop:'.3rem',height:3,background:'#E6E8EA',borderRadius:99,overflow:'hidden'}}>
           <div style={{height:'100%',background:'#005BBF',width:`${progress}%`,transition:'width .2s',borderRadius:99}}/>
         </div>
       )}
-
       {error && <p style={{fontSize:'.72rem',color:'#C5221F',marginTop:'.3rem',fontWeight:600}}>{error}</p>}
       {hint  && <p style={{fontSize:'.72rem',color:'#727785',marginTop:'.3rem'}}>{hint}</p>}
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
@@ -202,13 +208,11 @@ function TabInventory({phones, setPhones, onEdit}) {
   const toggleSold = async (phone) => {
     setToggling(t => ({...t, [phone.id]: true}))
     const newAvail = !phone.available
-    // Optimistic update
     setPhones(prev => prev.map(p => p.id === phone.id ? {...p, available: newAvail} : p))
     try {
       await updatePhone(phone.id, { available: newAvail })
       show(newAvail ? `${phone.name||phone.model} marked as available` : `${phone.name||phone.model} marked as sold`)
     } catch {
-      // Revert
       setPhones(prev => prev.map(p => p.id === phone.id ? {...p, available: phone.available} : p))
       show('Update failed — check Firestore rules', 'error')
     } finally { setToggling(t => {const n={...t}; delete n[phone.id]; return n}) }
@@ -311,14 +315,12 @@ function CatalogForm({initial, onSave, onCancel, saving}) {
   const setColor = (idx, val) => {
     const updated = [...(form.availableColors || ['',''])]
     updated[idx] = val
-    // If the last slot is now filled, add a new empty slot
     if (idx === updated.length - 1 && val.trim()) updated.push('')
     set('availableColors', updated)
   }
 
   const removeColor = (idx) => {
     const updated = (form.availableColors || []).filter((_,i) => i !== idx)
-    // Always keep at least 2 slots
     while (updated.length < 2) updated.push('')
     set('availableColors', updated)
   }
@@ -351,13 +353,11 @@ function CatalogForm({initial, onSave, onCancel, saving}) {
       <div style={{borderTop:'1px solid #E6E8EA',paddingTop:'1rem',marginBottom:'1rem'}}>
         <p style={{fontSize:'.7rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.85rem'}}>Fixed Specifications</p>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'.75rem'}}>
-          {/* Non-camera specs — 2 column grid */}
           {SPEC_FIELDS.filter(f=>!f.multiline).map(({key,label,placeholder})=>(
             <Field key={key} label={label}>
               <input value={form[key]||''} onChange={e=>set(key,e.target.value)} placeholder={placeholder} style={I}/>
             </Field>
           ))}
-          {/* Camera fields — side by side on one row */}
           <div style={{gridColumn:'1/-1',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'.75rem'}}>
             {SPEC_FIELDS.filter(f=>f.multiline).map(({key,label,placeholder})=>(
               <Field key={key} label={label}>
@@ -369,7 +369,6 @@ function CatalogForm({initial, onSave, onCancel, saving}) {
         </div>
       </div>
 
-      {/* Colour inputs — dynamic */}
       <div style={{borderTop:'1px solid #E6E8EA',paddingTop:'1rem',marginBottom:'1rem'}}>
         <p style={{fontSize:'.7rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.35rem'}}>Available Colours *</p>
         <p style={{fontSize:'.72rem',color:'#727785',marginBottom:'.75rem'}}>Type each colour name. A new slot appears automatically as you fill them in.</p>
@@ -411,8 +410,8 @@ function TabCatalog({catalog, setCatalog, showToast}) {
   const [editing,  setEditing]  = useState(null)
   const [saving,   setSaving]   = useState(false)
   const [deleting, setDeleting] = useState({})
-  const [collapsed,setCollapsed]= useState({})   // brand -> bool
-  const [expanded, setExpanded] = useState({})   // cat.id -> bool
+  const [collapsed,setCollapsed]= useState({})
+  const [expanded, setExpanded] = useState({})
 
   const save = async (data) => {
     setSaving(true)
@@ -471,8 +470,6 @@ function TabCatalog({catalog, setCatalog, showToast}) {
 
       {Object.entries(grouped).map(([brand,list])=>(
         <div key={brand} style={{marginBottom:'1.25rem',border:'1px solid #C1C6D6',borderRadius:12,overflow:'hidden'}}>
-
-          {/* Collapsible brand header */}
           <button
             onClick={()=>setCollapsed(prev=>({...prev,[brand]:!prev[brand]}))}
             style={{width:'100%',display:'flex',alignItems:'center',gap:'.65rem',padding:'.75rem 1rem',background:collapsed[brand]?'#F2F4F6':'#E8F0FE',border:'none',cursor:'pointer',textAlign:'left'}}>
@@ -482,15 +479,12 @@ function TabCatalog({catalog, setCatalog, showToast}) {
             <span style={{fontSize:12,color:'#727785',marginLeft:'.25rem'}}>{collapsed[brand]?'▼':'▲'}</span>
           </button>
 
-          {/* Cards grid — hidden when collapsed */}
           {!collapsed[brand]&&(
             <div style={{padding:'.75rem',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:'.6rem',background:'#fff',borderTop:'1px solid #E6E8EA'}}>
               {list.map(cat=>(
                 <div key={cat.id}
                   onClick={()=>setExpanded(prev=>({...prev,[cat.id]:!prev[cat.id]}))}
                   style={{border:`1px solid ${expanded[cat.id]?'#005BBF':'#C1C6D6'}`,borderRadius:10,overflow:'hidden',cursor:'pointer',opacity:deleting[cat.id]?.5:1,transition:'border-color .15s',background:expanded[cat.id]?'#F7FAFF':'#fff'}}>
-
-                  {/* Collapsed card — just the name */}
                   <div style={{padding:'.65rem .75rem',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'.4rem'}}>
                     <div>
                       <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.82rem',lineHeight:1.2}}>{cat.model}</p>
@@ -501,10 +495,8 @@ function TabCatalog({catalog, setCatalog, showToast}) {
                     <span style={{fontSize:11,color:'#727785',flexShrink:0}}>{expanded[cat.id]?'▲':'▼'}</span>
                   </div>
 
-                  {/* Expanded details */}
                   {expanded[cat.id]&&(
                     <div style={{borderTop:'1px solid #E6E8EA',padding:'.65rem .75rem'}} onClick={e=>e.stopPropagation()}>
-                      {/* Spec preview */}
                       {[
                         ['Display',cat.display],['Camera',cat.camera],['Battery',cat.battery],
                         ['Charging',cat.charging],['OS',cat.os],['Dimensions',cat.dimensions],['Weight',cat.weight]
@@ -521,7 +513,6 @@ function TabCatalog({catalog, setCatalog, showToast}) {
                           ))}
                         </div>
                       )}
-                      {/* Actions */}
                       <div style={{display:'flex',gap:'.4rem',marginTop:'.65rem'}}>
                         <button onClick={()=>setEditing(cat)} style={{flex:1,background:'#E8F0FE',color:'#1967D2',border:'none',borderRadius:7,padding:'.32rem 0',fontFamily:'inherit',fontWeight:700,fontSize:'.75rem',cursor:'pointer'}}>Edit</button>
                         <button onClick={()=>del(cat)} disabled={deleting[cat.id]} style={{flex:1,background:'#FCE8E6',color:'#C5221F',border:'none',borderRadius:7,padding:'.32rem 0',fontFamily:'inherit',fontWeight:700,fontSize:'.75rem',cursor:'pointer'}}>{deleting[cat.id]?'…':'Delete'}</button>
@@ -550,7 +541,6 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
   const set = (k,v) => setForm(f=>({...f,[k]:v}))
 
   const selectedCatalog = catalog.find(c => c.id === form.catalogId)
-  // Use only the colours defined in the catalog product, fall back to all brand colours
   const colors = selectedCatalog
     ? (selectedCatalog.availableColors?.length ? selectedCatalog.availableColors : (BRAND_COLORS[selectedCatalog.brand] || DEFAULT_COLORS))
     : DEFAULT_COLORS
@@ -561,7 +551,6 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
     if (cp) set('color', (BRAND_COLORS[cp.brand]||DEFAULT_COLORS)[0])
   }
 
-  // Upload handler for in-store photos
   const handlePhotoUploaded = (url) => {
     set('images', [...(form.images||[]), url])
   }
@@ -581,7 +570,7 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
       frontCamera:cp?.frontCamera, battery:cp?.battery, charging:cp?.charging,
       os:cp?.os, connectivity:cp?.connectivity, protection:cp?.protection,
     }
-    const featuredUntil = Date.now() + 7 * 24 * 60 * 60 * 1000  // 1 week from now
+    const featuredUntil = Date.now() + 7 * 24 * 60 * 60 * 1000
     onSave({ catalogId:form.catalogId, brand:cp?.brand||'', model:cp?.model||'', name:cp?.model||'', color:form.color, storage:form.storage, condition:form.condition, price:Number(form.price), available:true, featured:true, featuredUntil, images:form.images||[], slug, specs })
   }
 
@@ -595,7 +584,6 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
       {err&&<div style={{background:'#FCE8E6',color:'#C5221F',padding:'.6rem .85rem',borderRadius:8,fontSize:'.82rem',fontWeight:600,marginBottom:'1rem'}}>{err}</div>}
       {catalog.length===0&&<div style={{background:'#FEF7E0',border:'1.5px solid #FFB95F',borderRadius:10,padding:'1rem',marginBottom:'1rem',fontSize:'.82rem',color:'#653E00'}}>⚠️ Catalog is empty. Add models in the <strong>Catalog</strong> tab first.</div>}
 
-      {/* Step 1 */}
       <div style={{background:'#F2F4F6',borderRadius:12,padding:'1.25rem',marginBottom:'1.25rem',border:'1px solid #C1C6D6'}}>
         <p style={{fontSize:'.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.75rem'}}>Step 1 — Select Phone Model</p>
         <Field label="Phone Model *">
@@ -620,7 +608,6 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
         )}
       </div>
 
-      {/* Step 2 */}
       <div style={{background:'#F2F4F6',borderRadius:12,padding:'1.25rem',marginBottom:'1.25rem',border:'1px solid #C1C6D6'}}>
         <p style={{fontSize:'.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.75rem'}}>Step 2 — Variant Details</p>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'.75rem',marginBottom:'.75rem'}}>
@@ -631,14 +618,11 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
         </div>
       </div>
 
-      {/* Step 3 — In-store photos */}
       <div style={{background:'#F2F4F6',borderRadius:12,padding:'1.25rem',marginBottom:'1.25rem',border:'1px solid #C1C6D6'}}>
         <p style={{fontSize:'.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.35rem'}}>Step 3 — Live In-Store Photos</p>
         <p style={{fontSize:'.75rem',color:'#727785',marginBottom:'.85rem'}}>
-          Photos of <strong>this specific unit</strong> — the ones customers see first when they open the phone. These are your real, live photos from the shop.
+          Photos of <strong>this specific unit</strong> — the ones customers see first when they open the phone.
         </p>
-
-        {/* Existing photos */}
         {(form.images||[]).length > 0 && (
           <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',marginBottom:'.85rem'}}>
             {form.images.map((url,i)=>(
@@ -646,16 +630,13 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
             ))}
           </div>
         )}
-
         <ImageUploader
           storagePath={variantStoragePath}
           onUploaded={handlePhotoUploaded}
           label={form.images?.length ? 'Add Another Photo' : 'Upload Photo (from camera or gallery)'}
-          hint="First photo uploaded becomes the main display image. You can upload multiple."
+          hint="First photo uploaded becomes the main display image."
         />
       </div>
-
-
 
       <div style={{display:'flex',gap:'.55rem'}}>
         <Btn onClick={submit} disabled={saving}>{saving?'⏳ Saving…':`✓ ${editPhone?'Update':'Add to Inventory'}`}</Btn>
@@ -667,58 +648,70 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
 
 /* ═══════════════════════════════════════════════
    TAB 4 — MANAGE COLOUR IMAGES
+   - Only shows colours defined in the catalog entry
+   - Each colour has Front / Back / Side tabs
+   - colorImages shape: { [color]: { front: url|'', back: url|'', side: url|'' } }
 ═══════════════════════════════════════════════ */
 function TabImages({catalog, phones, showToast}) {
   const [selId,       setSelId]       = useState('')
   const [colorImages, setColorImages] = useState({})
+  const [activeView,  setActiveView]  = useState({})
   const [saving,      setSaving]      = useState(false)
 
   const selectedCatalog = catalog.find(c => c.id === selId)
-  const variantColors   = selId ? [...new Set(phones.filter(p=>p.catalogId===selId).map(p=>p.color).filter(Boolean))] : []
-  const brandColors     = selectedCatalog ? (BRAND_COLORS[selectedCatalog.brand]||DEFAULT_COLORS) : []
-  const allColors       = [...new Set([...variantColors, ...brandColors])]
+  const catalogColors   = selectedCatalog?.availableColors?.filter(Boolean) || []
 
   const handleSelect = (id) => {
     setSelId(id)
-    const cat = catalog.find(c=>c.id===id)
-    setColorImages(cat?.colorImages||{})
-  }
-
-  const addUrl = (color, url) => {
-    if (!url.trim()) return
-    setColorImages(prev=>({...prev,[color]:[...(prev[color]||[]),url.trim()]}))
-  }
-
-  const removeImg = (color, idx) => {
-    setColorImages(prev=>{
-      const updated=[...(prev[color]||[])]
-      updated.splice(idx,1)
-      const next={...prev,[color]:updated}
-      if(!next[color].length) delete next[color]
-      return next
+    const cat = catalog.find(c => c.id === id)
+    const raw = cat?.colorImages || {}
+    const normalised = {}
+    ;(cat?.availableColors || []).filter(Boolean).forEach(color => {
+      const existing = raw[color]
+      if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+        normalised[color] = { front: existing.front||'', back: existing.back||'', side: existing.side||'' }
+      } else {
+        const arr = Array.isArray(existing) ? existing : []
+        normalised[color] = { front: arr[0]||'', back: arr[1]||'', side: arr[2]||'' }
+      }
     })
+    setColorImages(normalised)
+    const views = {}
+    ;(cat?.availableColors || []).filter(Boolean).forEach(c => { views[c] = 'front' })
+    setActiveView(views)
   }
 
-  const handleUploaded = (color, url) => {
-    setColorImages(prev=>({...prev,[color]:[...(prev[color]||[]),url]}))
+  const setSlot = (color, slot, url) => {
+    setColorImages(prev => ({
+      ...prev,
+      [color]: { ...(prev[color] || {front:'',back:'',side:''}), [slot]: url }
+    }))
   }
+
+  const clearSlot = (color, slot) => setSlot(color, slot, '')
 
   const saveAll = async () => {
     if (!selId) return
     setSaving(true)
     try {
       await updateCatalogColorImages(selId, colorImages)
-      // Update catalog in memory
       showToast('Colour images saved')
-    } catch { showToast('Save failed — check Firestore rules','error') }
+    } catch { showToast('Save failed — check Firestore rules', 'error') }
     finally { setSaving(false) }
   }
 
-  const totalImgs = Object.values(colorImages).flat().length
+  const totalSlots = Object.values(colorImages).reduce((sum, v) => {
+    return sum + (v.front?1:0) + (v.back?1:0) + (v.side?1:0)
+  }, 0)
+
+  const SLOTS = ['front', 'back', 'side']
 
   return (
     <div>
-      <SectionHead title="Phone Images" subtitle="Upload photos per colour. Customers use these to see different colours on the product page."/>
+      <SectionHead
+        title="Phone Images"
+        subtitle="Upload Front, Back, and Side photos per colour. Only colours added in Catalog are shown."
+      />
 
       <div style={{background:'#F2F4F6',borderRadius:12,padding:'1.25rem',marginBottom:'1.5rem',border:'1px solid #C1C6D6',maxWidth:480}}>
         <Lbl>Select Phone Model</Lbl>
@@ -732,49 +725,87 @@ function TabImages({catalog, phones, showToast}) {
         </select>
       </div>
 
-      {!selId&&<div style={{textAlign:'center',padding:'3rem',color:'#727785',background:'#F2F4F6',borderRadius:12}}><div style={{fontSize:36,marginBottom:'1rem'}}>🎨</div><p style={{fontWeight:600}}>Select a model to manage its colour photos</p></div>}
+      {!selId && (
+        <div style={{textAlign:'center',padding:'3rem',color:'#727785',background:'#F2F4F6',borderRadius:12}}>
+          <div style={{fontSize:36,marginBottom:'1rem'}}>🎨</div>
+          <p style={{fontWeight:600}}>Select a model to manage its colour photos</p>
+        </div>
+      )}
 
-      {selId&&(
+      {selId && catalogColors.length === 0 && (
+        <div style={{padding:'1.25rem',background:'#FEF7E0',border:'1.5px solid #FFB95F',borderRadius:10,fontSize:'.82rem',color:'#653E00'}}>
+          ⚠️ No colours defined for this model. Go to <strong>Catalog</strong>, edit this model, and add colours first.
+        </div>
+      )}
+
+      {selId && catalogColors.length > 0 && (
         <>
-          {variantColors.length>0&&(
-            <div style={{marginBottom:'1rem',padding:'.65rem 1rem',background:'#E8F0FE',borderRadius:8,border:'1px solid #ADC7FF',fontSize:'.8rem',color:'#1967D2'}}>
-              <strong>Colours in your inventory:</strong> {variantColors.join(', ')} — add photos for these so customers can see each colour
-            </div>
-          )}
-
-          {allColors.map(color=>{
-            const imgs  = colorImages[color]||[]
-            const hex   = COLOR_HEX[color]||'#999'
+          {catalogColors.map(color => {
+            const hex   = COLOR_HEX[color] || '#999'
             const light = ['White','Porcelain','Pearl','Snow','Starlight','Natural Titanium','Cream','Sand'].some(l=>color.includes(l))
+            const imgs  = colorImages[color] || {front:'',back:'',side:''}
+            const filled = SLOTS.filter(s=>imgs[s]).length
+            const current = activeView[color] || 'front'
+
             return (
-              <div key={color} style={{marginBottom:'1.25rem',border:'1px solid #C1C6D6',borderRadius:12,overflow:'hidden'}}>
-                <div style={{display:'flex',alignItems:'center',gap:'.75rem',padding:'.7rem 1rem',background:imgs.length?'#fff':'#F2F4F6',borderBottom:'1px solid #E6E8EA'}}>
-                  <div style={{width:22,height:22,borderRadius:'50%',background:hex,flexShrink:0,border:light?'1.5px solid #C1C6D6':'none',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
-                  <span style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.9rem'}}>{color}</span>
-                  <span style={{fontSize:'.72rem',color:'#727785',marginLeft:'auto'}}>{imgs.length} photo{imgs.length!==1?'s':''}</span>
-                  {variantColors.includes(color)&&<span style={{fontSize:'.65rem',fontWeight:700,padding:'.18rem .5rem',borderRadius:999,background:'#E6F4EA',color:'#137333'}}>In stock</span>}
+              <div key={color} style={{marginBottom:'1rem',border:'1px solid #C1C6D6',borderRadius:12,overflow:'hidden'}}>
+                {/* Color header */}
+                <div style={{display:'flex',alignItems:'center',gap:'.75rem',padding:'.65rem 1rem',background:filled===3?'#E6F4EA':'#F2F4F6',borderBottom:'1px solid #E6E8EA'}}>
+                  <div style={{width:20,height:20,borderRadius:'50%',background:hex,flexShrink:0,border:light?'1.5px solid #C1C6D6':'none',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
+                  <span style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.88rem',flex:1}}>{color}</span>
+                  <span style={{fontSize:'.68rem',color:filled===3?'#137333':'#727785',fontWeight:600}}>{filled}/3 photos</span>
                 </div>
-                <div style={{padding:'1rem'}}>
-                  {imgs.length>0&&(
-                    <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',marginBottom:'.85rem'}}>
-                      {imgs.map((url,i)=>(
-                        <ImageThumb key={url+i} url={url} onRemove={()=>removeImg(color,i)}/>
-                      ))}
-                    </div>
-                  )}
-                  <ImageUploader
-                    storagePath={`catalog/${selId}/${color.toLowerCase().replace(/\s+/g,'-')}`}
-                    onUploaded={url=>handleUploaded(color,url)}
-                    label={`Upload ${color} photo`}
-                    hint="Official/product photo for this colour. Shown when customer switches colour on product page."
-                  />
+
+                {/* Front / Back / Side tabs */}
+                <div style={{display:'flex',borderBottom:'1px solid #E6E8EA',background:'#fff'}}>
+                  {SLOTS.map(slot => {
+                    const hasImg  = !!imgs[slot]
+                    const isActive = current === slot
+                    return (
+                      <button key={slot}
+                        onClick={() => setActiveView(prev=>({...prev,[color]:slot}))}
+                        style={{flex:1,padding:'.42rem .5rem',border:'none',borderBottom:isActive?'2px solid #005BBF':'2px solid transparent',background:'transparent',fontFamily:'inherit',fontWeight:isActive?700:500,fontSize:'.78rem',color:isActive?'#005BBF':hasImg?'#137333':'#727785',cursor:'pointer',textTransform:'capitalize',display:'flex',alignItems:'center',justifyContent:'center',gap:'.3rem',transition:'color .12s'}}>
+                        {hasImg ? '✓ ' : ''}{slot}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Active slot */}
+                <div style={{padding:'.85rem 1rem',background:'#fff',display:'flex',alignItems:'flex-start',gap:'1rem'}}>
+                  {/* Thumbnail */}
+                  <div style={{width:70,height:88,background:'#F2F4F6',borderRadius:8,overflow:'hidden',border:'1px solid #E6E8EA',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {imgs[current]
+                      ? <img src={imgs[current]} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}} onError={e=>{e.target.style.display='none'}}/>
+                      : <span style={{fontSize:22,opacity:.2}}>📱</span>
+                    }
+                  </div>
+                  {/* Upload / remove */}
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{fontSize:'.7rem',color:'#727785',marginBottom:'.5rem',textTransform:'capitalize'}}>
+                      {current} view{imgs[current]?' — replace below':''}
+                    </p>
+                    <ImageUploader
+                      storagePath={`catalog/${selId}/${color.toLowerCase().replace(/\s+/g,'-')}/${current}`}
+                      onUploaded={url => setSlot(color, current, url)}
+                      label={imgs[current] ? `Replace ${current}` : `Upload ${current}`}
+                      compact
+                    />
+                    {imgs[current] && (
+                      <button onClick={() => clearSlot(color, current)}
+                        style={{marginTop:'.4rem',background:'none',border:'none',color:'#C5221F',cursor:'pointer',fontSize:'.72rem',fontWeight:600,padding:0,fontFamily:'inherit'}}>
+                        ✕ Remove
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )
           })}
 
-          <div style={{position:'sticky',bottom:24,background:'#fff',padding:'1rem',borderRadius:12,boxShadow:'0 4px 20px rgba(0,0,0,.12)',border:'1px solid #C1C6D6',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'1rem',flexWrap:'wrap',marginTop:'1rem'}}>
-            <p style={{fontSize:'.8rem',color:'#414754'}}>{totalImgs} photo{totalImgs!==1?'s':''} across {Object.keys(colorImages).length} colour{Object.keys(colorImages).length!==1?'s':''}</p>
+          {/* Sticky save bar */}
+          <div style={{position:'sticky',bottom:24,background:'#fff',padding:'.85rem 1rem',borderRadius:12,boxShadow:'0 4px 20px rgba(0,0,0,.12)',border:'1px solid #C1C6D6',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'1rem',flexWrap:'wrap',marginTop:'1rem'}}>
+            <p style={{fontSize:'.8rem',color:'#414754'}}>{totalSlots} photo{totalSlots!==1?'s':''} across {catalogColors.length} colour{catalogColors.length!==1?'s':''}</p>
             <Btn onClick={saveAll} disabled={saving}>{saving?'⏳ Saving…':'✓ Save All'}</Btn>
           </div>
         </>
@@ -835,10 +866,7 @@ function TabPrices({phones, onSavePrice}) {
   )
 }
 
-
-
-/* ── Inline site image helpers (no separate file needed) ── */
-const SITE_IMAGES_DOC = 'settings/siteImages'
+/* ── Inline site image helpers ── */
 async function getSiteImages() {
   try {
     const { doc, getDoc } = await import('firebase/firestore')
@@ -868,33 +896,11 @@ async function removeSiteImage(key) {
 
 /* ═══════════════════════════════════════════════
    TAB — SITE IMAGES
-   Manage all non-phone images on the website
 ═══════════════════════════════════════════════ */
 const SITE_IMAGE_SLOTS = [
-  {
-    key:      'ownerPhoto',
-    label:    "Owner's Photo",
-    desc:     'Shown on the About page beside the founder biography.',
-    fallback: '/images/owner.jpg',
-    hint:     'Portrait orientation works best. Face should be clear and well-lit.',
-    aspect:   '4/3',
-  },
-  {
-    key:      'shopPhoto',
-    label:    'Shop Photo',
-    desc:     'Shown on the About page in the Shop section.',
-    fallback: '/images/shop.jpg',
-    hint:     'Landscape photo of the shop front or interior.',
-    aspect:   '4/3',
-  },
-  {
-    key:      'pixelHero',
-    label:    'Pixel Hero Image',
-    desc:     'Dark background section on the homepage — "Why Choose Pixel?"',
-    fallback: '/images/pixel-hero.jpg',
-    hint:     'Dark or moody photo of a Pixel phone. Landscape orientation.',
-    aspect:   '4/3',
-  },
+  { key:'ownerPhoto', label:"Owner's Photo",    desc:'Shown on the About page beside the founder biography.', fallback:'/images/owner.jpg', hint:'Portrait orientation works best. Face should be clear and well-lit.', aspect:'4/3' },
+  { key:'shopPhoto',  label:'Shop Photo',        desc:'Shown on the About page in the Shop section.',          fallback:'/images/shop.jpg',  hint:'Landscape photo of the shop front or interior.',                   aspect:'4/3' },
+  { key:'pixelHero', label:'Pixel Hero Image',  desc:'Dark background section on the homepage — "Why Choose Pixel?"', fallback:'/images/pixel-hero.jpg', hint:'Dark or moody photo of a Pixel phone. Landscape orientation.', aspect:'4/3' },
 ]
 
 function TabSiteImages({ showToast }) {
@@ -916,7 +922,7 @@ function TabSiteImages({ showToast }) {
     finally { setSaving(s => ({...s, [key]: false})) }
   }
 
-  const handleRemove = async (key, fallback) => {
+  const handleRemove = async (key) => {
     if (!confirm('Remove this image? The site will fall back to the default.')) return
     setSaving(s => ({...s, [key]: true}))
     try {
@@ -936,51 +942,26 @@ function TabSiteImages({ showToast }) {
 
   return (
     <div>
-      <SectionHead
-        title="Site Images"
-        subtitle="Upload or replace any image used on the website. Changes go live immediately — no code changes needed."
-      />
-
+      <SectionHead title="Site Images" subtitle="Upload or replace any image used on the website. Changes go live immediately."/>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'1.5rem'}}>
         {SITE_IMAGE_SLOTS.map(slot => {
           const currentUrl = images[slot.key] || slot.fallback
           const hasCustom  = !!images[slot.key]
-
           return (
             <div key={slot.key} style={{border:'1px solid #C1C6D6',borderRadius:14,overflow:'hidden',background:'#fff'}}>
-              {/* Preview */}
               <div style={{aspectRatio:slot.aspect,background:'#F2F4F6',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
-                <img src={currentUrl} alt={slot.label}
-                  style={{width:'100%',height:'100%',objectFit:slot.key==='logo'?'contain':'cover'}}
-                  onError={e=>{e.target.style.display='none'; e.target.parentNode.innerHTML='<span style="font-size:36px;opacity:.2">🖼</span>'}}
-                />
-                {hasCustom && (
-                  <span style={{position:'absolute',top:8,right:8,background:'#E6F4EA',color:'#137333',fontSize:'.65rem',fontWeight:700,padding:'.18rem .55rem',borderRadius:999}}>
-                    Custom ✓
-                  </span>
-                )}
-                {!hasCustom && (
-                  <span style={{position:'absolute',top:8,right:8,background:'#F2F4F6',color:'#727785',fontSize:'.65rem',fontWeight:700,padding:'.18rem .55rem',borderRadius:999}}>
-                    Default
-                  </span>
-                )}
+                <img src={currentUrl} alt={slot.label} style={{width:'100%',height:'100%',objectFit:'cover'}}
+                  onError={e=>{e.target.style.display='none'; e.target.parentNode.innerHTML='<span style="font-size:36px;opacity:.2">🖼</span>'}}/>
+                <span style={{position:'absolute',top:8,right:8,background:hasCustom?'#E6F4EA':'#F2F4F6',color:hasCustom?'#137333':'#727785',fontSize:'.65rem',fontWeight:700,padding:'.18rem .55rem',borderRadius:999}}>
+                  {hasCustom ? 'Custom ✓' : 'Default'}
+                </span>
               </div>
-
-              {/* Info + actions */}
               <div style={{padding:'1rem'}}>
                 <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.9rem',marginBottom:'.2rem'}}>{slot.label}</p>
                 <p style={{fontSize:'.75rem',color:'#727785',marginBottom:'.85rem',lineHeight:1.5}}>{slot.desc}</p>
-
-                <ImageUploader
-                  storagePath={`site/${slot.key}`}
-                  onUploaded={url => handleUploaded(slot.key, url)}
-                  label={hasCustom ? 'Replace Image' : 'Upload Image'}
-                  hint={slot.hint}
-                />
-
+                <ImageUploader storagePath={`site/${slot.key}`} onUploaded={url => handleUploaded(slot.key, url)} label={hasCustom ? 'Replace Image' : 'Upload Image'} hint={slot.hint}/>
                 {hasCustom && (
-                  <button onClick={() => handleRemove(slot.key, slot.fallback)}
-                    disabled={saving[slot.key]}
+                  <button onClick={() => handleRemove(slot.key)} disabled={saving[slot.key]}
                     style={{marginTop:'.55rem',background:'none',border:'none',color:'#C5221F',cursor:'pointer',fontSize:'.75rem',fontWeight:600,padding:0,fontFamily:'inherit'}}>
                     ✕ Remove custom image (revert to default)
                   </button>
@@ -1004,10 +985,8 @@ function TabBanners({ showToast }) {
 
   const load = async () => {
     setLoading(true)
-    try {
-      const items = await getBanners()
-      setBanners(items)
-    } catch { showToast('Could not load banners', 'error') }
+    try { const items = await getBanners(); setBanners(items) }
+    catch { showToast('Could not load banners', 'error') }
     finally { setLoading(false) }
   }
 
@@ -1034,28 +1013,16 @@ function TabBanners({ showToast }) {
 
   return (
     <div>
-      <SectionHead
-        title="Banners"
-        subtitle="Upload images that rotate on the homepage hero. Add as many as you want — they cycle automatically."
-      />
-
-      {/* Upload button */}
+      <SectionHead title="Banners" subtitle="Upload images that rotate on the homepage hero. They cycle automatically."/>
       <div style={{ maxWidth: 360, marginBottom: '2rem' }}>
-        <ImageUploader
-          storagePath="banners"
-          onUploaded={handleUploaded}
-          label="Upload New Banner"
-          hint="Recommended size: 1000 × 900px. Landscape or portrait both work."
-        />
+        <ImageUploader storagePath="banners" onUploaded={handleUploaded} label="Upload New Banner" hint="Recommended size: 1000 × 900px."/>
       </div>
-
       {loading && (
         <div style={{ display:'flex', alignItems:'center', gap:'.5rem', color:'#727785', fontSize:'.82rem' }}>
           <div style={{ width:16, height:16, border:'2px solid #005BBF', borderTopColor:'transparent', borderRadius:'50%', animation:'spin .6s linear infinite' }}/>
           Loading banners…
         </div>
       )}
-
       {!loading && banners.length === 0 && (
         <div style={{ textAlign:'center', padding:'3rem', color:'#727785', background:'#F2F4F6', borderRadius:12 }}>
           <div style={{ fontSize:40, marginBottom:'1rem' }}>🖼</div>
@@ -1063,13 +1030,9 @@ function TabBanners({ showToast }) {
           <p style={{ fontSize:'.82rem' }}>Upload your first banner above</p>
         </div>
       )}
-
-      {/* Banner grid */}
       {banners.length > 0 && (
         <div>
-          <p style={{ fontSize:'.72rem', color:'#727785', marginBottom:'1rem' }}>
-            {banners.length} banner{banners.length!==1?'s':''} — drag to reorder coming soon
-          </p>
+          <p style={{ fontSize:'.72rem', color:'#727785', marginBottom:'1rem' }}>{banners.length} banner{banners.length!==1?'s':''}</p>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:'1rem' }}>
             {banners.map((b, i) => (
               <div key={b.id} style={{ border:'1px solid #C1C6D6', borderRadius:12, overflow:'hidden', background:'#fff', opacity:deleting[b.id]?.5:1, transition:'opacity .2s' }}>
@@ -1118,7 +1081,6 @@ function TabAccessories({catalog, showToast}) {
   }
 
   const handleSelect = (id) => { setSelId(id); load(id); setForm({name:'',price:'',images:[]}); setEditing(null) }
-
   const set = (k,v) => setForm(f=>({...f,[k]:v}))
 
   const handlePhotoUploaded = (url) => {
@@ -1132,14 +1094,7 @@ function TabAccessories({catalog, showToast}) {
     if (!form.price)       { showToast('Enter a price','error'); return }
     setSaving(true)
     try {
-      const data = {
-        name: form.name.trim(),
-        price: Number(form.price),
-        images: form.images||[],
-        catalogId: selId,
-        phoneName: selectedCatalog?.model||'',
-        brand: selectedCatalog?.brand||'',
-      }
+      const data = { name:form.name.trim(), price:Number(form.price), images:form.images||[], catalogId:selId, phoneName:selectedCatalog?.model||'', brand:selectedCatalog?.brand||'' }
       if (editing) {
         await updateAccessory(editing.id, data)
         setAccessories(prev => prev.map(a => a.id===editing.id?{...a,...data}:a))
@@ -1154,8 +1109,7 @@ function TabAccessories({catalog, showToast}) {
     finally { setSaving(false) }
   }
 
-  const handleEdit = (acc) => { setEditing(acc); setForm({name:acc.name,price:acc.price,images:acc.images||[]}) }
-
+  const handleEdit   = (acc) => { setEditing(acc); setForm({name:acc.name,price:acc.price,images:acc.images||[]}) }
   const handleDelete = async (acc) => {
     if (!confirm(`Delete "${acc.name}"?`)) return
     try {
@@ -1168,8 +1122,6 @@ function TabAccessories({catalog, showToast}) {
   return (
     <div>
       <SectionHead title="Accessories" subtitle="Add accessories for each phone. They show on the phone detail page."/>
-
-      {/* Select phone */}
       <div style={{background:'#F2F4F6',borderRadius:12,padding:'1.25rem',marginBottom:'1.5rem',border:'1px solid #C1C6D6',maxWidth:480}}>
         <Lbl>Select Phone Model</Lbl>
         <select value={selId} onChange={e=>handleSelect(e.target.value)} style={{...I,appearance:'none'}}>
@@ -1184,11 +1136,8 @@ function TabAccessories({catalog, showToast}) {
 
       {selId && (
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'2rem',alignItems:'start'}} className="acc-g">
-
-          {/* Add/Edit form */}
           <div style={{background:'#F2F4F6',borderRadius:12,padding:'1.25rem',border:'1px solid #C1C6D6'}}>
             <p style={{fontSize:'.72rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.85rem'}}>{editing?'Edit Accessory':'Add Accessory'}</p>
-
             <div style={{display:'flex',flexDirection:'column',gap:'.65rem',marginBottom:'.85rem'}}>
               <Field label="Accessory Name *">
                 <input value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. Clear Case, USB-C Charger, Screen Protector" style={I}/>
@@ -1197,7 +1146,6 @@ function TabAccessories({catalog, showToast}) {
                 <input type="number" value={form.price} onChange={e=>set('price',e.target.value)} placeholder="e.g. 5000" style={I}/>
               </Field>
             </div>
-
             <Lbl>Photos (up to 3)</Lbl>
             <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',marginBottom:'.65rem'}}>
               {(form.images||[]).map((url,i)=>(
@@ -1205,21 +1153,14 @@ function TabAccessories({catalog, showToast}) {
               ))}
             </div>
             {(form.images||[]).length < 3 && (
-              <ImageUploader
-                storagePath={`accessories/${selId}`}
-                onUploaded={handlePhotoUploaded}
-                label="Upload Photo"
-                hint=""
-              />
+              <ImageUploader storagePath={`accessories/${selId}`} onUploaded={handlePhotoUploaded} label="Upload Photo" hint=""/>
             )}
-
             <div style={{display:'flex',gap:'.5rem',marginTop:'1rem'}}>
               <Btn onClick={handleSave} disabled={saving}>{saving?'⏳ Saving…':editing?'✓ Update':'+ Add'}</Btn>
               {editing && <Btn onClick={()=>{setEditing(null);setForm({name:'',price:'',images:[]})}} variant="ghost">Cancel</Btn>}
             </div>
           </div>
 
-          {/* Accessories list */}
           <div>
             <p style={{fontSize:'.72rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.85rem'}}>
               {accessories.length} Accessor{accessories.length!==1?'ies':'y'} for {selectedCatalog?.model}
@@ -1316,9 +1257,8 @@ export default function Admin() {
     try {
       const [p,cat]=await Promise.all([getAllPhones(),getAllCatalog()])
       setPhones(p);setCatalog(cat)
-    } catch(err) {
-      show('Failed to load data. Check Firestore rules in Firebase Console — allow read/write for authenticated users.','error')
-    } finally { setLoading(false) }
+    } catch { show('Failed to load — check Firestore rules in Firebase Console','error') }
+    finally { setLoading(false) }
   }
   useEffect(()=>{if(user) load()},[user])
 
@@ -1334,21 +1274,26 @@ export default function Admin() {
   const handleSavePrice=async(id,price)=>{await updatePhone(id,{price});setPhones(prev=>prev.map(p=>p.id===id?{...p,price}:p))}
   const logout=async()=>{await signOut(auth);setPhones([]);setCatalog([]);setTab('inventory');setEditing(null)}
 
-  if(user===undefined) return <div className="pt" style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{width:28,height:28,border:'2.5px solid #005BBF',borderTopColor:'transparent',borderRadius:'50%',animation:'spin .7s linear infinite'}}/><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>
+  if(user===undefined) return(
+    <div className="pt" style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{width:28,height:28,border:'2.5px solid #005BBF',borderTopColor:'transparent',borderRadius:'50%',animation:'spin .7s linear infinite'}}/>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  )
   if(!user) return <LoginScreen/>
 
   const TABS=[
-    {id:'inventory',label:`📦 Inventory (${phones.filter(p=>p.available).length})`},
-    {id:'add',      label:editing?'✏️ Edit Variant':'➕ Add to Inventory'},
-    {id:'prices',   label:'💰 Edit Prices'},
-    {id:'catalog',  label:'📋 Catalog'},
-    {id:'images',   label:'📸 Phone Images'},
-    {id:'banners',  label:'🖼 Banners'},
+    {id:'inventory',  label:`📦 Inventory (${phones.filter(p=>p.available).length})`},
+    {id:'add',        label:editing?'✏️ Edit Variant':'➕ Add to Inventory'},
+    {id:'prices',     label:'💰 Edit Prices'},
+    {id:'catalog',    label:'📋 Catalog'},
+    {id:'images',     label:'📸 Phone Images'},
+    {id:'banners',    label:'🖼 Banners'},
     {id:'siteimages', label:'🌐 Site Images'},
     {id:'accessories',label:'🎧 Accessories'},
   ]
 
-  return (
+  return(
     <div className="pt" style={{paddingBottom:'5rem',background:'var(--bg)',minHeight:'100vh'}}>
       {Toast}
       <div style={{maxWidth:1280,margin:'0 auto',padding:'2rem 2.5rem'}}>
@@ -1365,14 +1310,14 @@ export default function Admin() {
             </button>
           ))}
         </div>
-        {tab==='inventory'&&<TabInventory phones={phones} setPhones={setPhones} onEdit={p=>{setEditing(p);setTab('add')}}/>}
-        {tab==='catalog'  &&<TabCatalog   catalog={catalog} setCatalog={setCatalog} showToast={show}/>}
-        {tab==='add'      &&<TabAddInventory catalog={catalog} editPhone={editing} onSave={handleSave} onCancel={()=>{setEditing(null);setTab('inventory')}} saving={saving}/>}
-        {tab==='images'   &&<TabImages    catalog={catalog} phones={phones} showToast={show}/>}
-        {tab==='prices'   &&<TabPrices    phones={phones} onSavePrice={handleSavePrice}/>}
-        {tab==='banners'  &&<TabBanners   showToast={show}/>}
-        {tab==='siteimages'  &&<TabSiteImages   showToast={show}/>}
-        {tab==='accessories'&&<TabAccessories catalog={catalog} showToast={show}/>}
+        {tab==='inventory'  &&<TabInventory    phones={phones} setPhones={setPhones} onEdit={p=>{setEditing(p);setTab('add')}}/>}
+        {tab==='catalog'    &&<TabCatalog      catalog={catalog} setCatalog={setCatalog} showToast={show}/>}
+        {tab==='add'        &&<TabAddInventory catalog={catalog} editPhone={editing} onSave={handleSave} onCancel={()=>{setEditing(null);setTab('inventory')}} saving={saving}/>}
+        {tab==='images'     &&<TabImages       catalog={catalog} phones={phones} showToast={show}/>}
+        {tab==='prices'     &&<TabPrices       phones={phones} onSavePrice={handleSavePrice}/>}
+        {tab==='banners'    &&<TabBanners      showToast={show}/>}
+        {tab==='siteimages' &&<TabSiteImages   showToast={show}/>}
+        {tab==='accessories'&&<TabAccessories  catalog={catalog} showToast={show}/>}
       </div>
       <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
     </div>
