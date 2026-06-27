@@ -1273,8 +1273,12 @@ export default function Admin() {
 
   const load=async()=>{
     setLoading(true)
-    const [p,c]=await Promise.all([getAllPhones(),getAllCatalog()])
-    setPhones(p);setCatalog(c);setLoading(false)
+    try {
+      const [p,cat]=await Promise.all([getAllPhones(),getAllCatalog()])
+      setPhones(p);setCatalog(cat)
+    } catch(err) {
+      show('Failed to load data. Check Firestore rules in Firebase Console — allow read/write for authenticated users.','error')
+    } finally { setLoading(false) }
   }
   useEffect(()=>{if(user) load()},[user])
 
@@ -1813,8 +1817,12 @@ export default function Admin() {
 
   const load=async()=>{
     setLoading(true)
-    const [p,c]=await Promise.all([getAllPhones(),getAllCatalog()])
-    setPhones(p);setCatalog(c);setLoading(false)
+    try {
+      const [p,cat]=await Promise.all([getAllPhones(),getAllCatalog()])
+      setPhones(p);setCatalog(cat)
+    } catch(err) {
+      show('Failed to load data. Check Firestore rules in Firebase Console — allow read/write for authenticated users.','error')
+    } finally { setLoading(false) }
   }
   useEffect(()=>{if(user) load()},[user])
 
