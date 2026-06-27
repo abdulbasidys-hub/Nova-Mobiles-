@@ -83,7 +83,7 @@ export default function Shop() {
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }} className="pt">
 
       {/* Header */}
-      <WatermarkSection src="/images/logo.png" lightOp={0.04} darkOp={0.06} wmSize="320px" wmAlign="right"
+      <WatermarkSection src="/logo.png" lightOp={0.04} darkOp={0.06} wmSize="320px" wmAlign="right"
         style={{ background: 'var(--surface-low)', borderBottom: '1px solid var(--outline-var)', padding: '2rem 0' }}>
         <div className="W">
           <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(1.6rem,3.5vw,2.25rem)', letterSpacing: '-.02em', marginBottom: '.3rem' }}>Explore Our Inventory</h1>

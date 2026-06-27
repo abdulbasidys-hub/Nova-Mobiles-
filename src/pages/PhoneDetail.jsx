@@ -38,7 +38,6 @@ const COMPARE_ROWS = [
   {label:'Storage',   fn:p=>p.storage||'—'},
   {label:'Color',     fn:p=>p.color||'—'},
   {label:'Display',   fn:p=>p.specs?.display||'—'},
-  {label:'Processor', fn:p=>p.specs?.processor||'—'},
   {label:'Camera',    fn:p=>p.specs?.camera||'—'},
   {label:'Battery',   fn:p=>p.specs?.battery||'—'},
   {label:'Status',    fn:p=>p.available?'Available':'Sold'},
@@ -190,14 +189,11 @@ export default function PhoneDetail() {
     {label:'Color',       value: selColor || phone.color},   // ← updates with selected color
     {label:'Network',     value: phone.network},
     {label:'Display',     value: specs.display || catalog?.display},
-    {label:'Processor',   value: specs.processor || catalog?.processor},
-    {label:'Camera',      value: specs.camera || catalog?.camera},
-    {label:'Front Camera',value: specs.frontCamera || catalog?.frontCamera},
+    {label:'Rear Camera',  value: specs.camera || catalog?.camera, multiline:true},
+    {label:'Front Camera', value: specs.frontCamera || catalog?.frontCamera, multiline:true},
     {label:'Battery',     value: specs.battery || catalog?.battery},
     {label:'Charging',    value: specs.charging || catalog?.charging},
     {label:'OS',          value: specs.os || catalog?.os},
-    {label:'Connectivity',value: specs.connectivity || catalog?.connectivity},
-    {label:'Protection',  value: specs.protection || catalog?.protection},
     {label:'Dimensions',  value: catalog?.dimensions},
     {label:'Weight',      value: catalog?.weight},
   ].filter(r => r.value)
@@ -348,29 +344,47 @@ export default function PhoneDetail() {
                   <span className="material-symbols-outlined" style={{fontSize:15,color:'rgba(255,255,255,.85)'}}>smartphone</span>
                   <span style={{fontFamily:'var(--font-body)',fontSize:'.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.1em',color:'#fff'}}>Full Specifications</span>
                 </div>
-                {specRows.map(({label,value},i) => (
+                {specRows.map(({label,value,multiline},i) => {
+                  const lines = multiline && value ? value.split('\n').filter(l=>l.trim()) : null
+                  return (
                   <div key={label} style={{display:'flex',borderBottom:i<specRows.length-1?'1px solid var(--outline-var)':'none',background:i%2===0?'var(--surface-lowest)':'var(--surface-low)'}}>
-                    <div style={{width:120,flexShrink:0,padding:'.58rem .9rem',borderRight:'1px solid var(--outline-var)'}}>
+                    <div style={{width:120,flexShrink:0,padding:'.58rem .9rem',borderRight:'1px solid var(--outline-var)',paddingTop: lines?.length > 1 ? '.7rem' : '.58rem'}}>
                       <span style={{fontFamily:'var(--font-body)',fontSize:'.7rem',fontWeight:700,color:'var(--on-surface-var)',textTransform:'uppercase',letterSpacing:'.06em'}}>{label}</span>
+                      {lines?.length > 1 && (
+                        <div style={{fontSize:'.62rem',color:'var(--primary)',fontWeight:700,marginTop:'.2rem'}}>
+                          {lines.length === 2 ? 'Dual' : lines.length === 3 ? 'Triple' : lines.length === 4 ? 'Quad' : lines.length + '×'}
+                        </div>
+                      )}
                     </div>
                     <div style={{padding:'.58rem .9rem',flex:1}}>
-                      <span style={{
-                        fontFamily:'var(--font-body)',fontSize:'.875rem',
-                        color: label==='Color' ? 'var(--primary)' : 'var(--on-surface)',
-                        fontWeight: label==='Color' ? 700 : 500,
-                      }}>
-                        {/* Color row shows swatch + name */}
-                        {label==='Color' && (
-                          <span style={{display:'inline-flex',alignItems:'center',gap:'.4rem'}}>
-                            <span style={{width:14,height:14,borderRadius:'50%',background:COLOR_HEX[value]||'#999',display:'inline-block',border:isLightColor(value)?'1px solid var(--outline-var)':'none',flexShrink:0}} />
-                            {value}
-                          </span>
-                        )}
-                        {label!=='Color' && value}
-                      </span>
+                      {lines?.length > 1 ? (
+                        <div style={{display:'flex',flexDirection:'column',gap:'.35rem'}}>
+                          {lines.map((line,li) => (
+                            <div key={li} style={{display:'flex',alignItems:'flex-start',gap:'.5rem',fontSize:'.82rem',color:'var(--on-surface)',fontWeight:500}}>
+                              <span style={{width:6,height:6,borderRadius:'50%',background:'var(--primary)',flexShrink:0,marginTop:6}}/>
+                              {line.trim()}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span style={{
+                          fontFamily:'var(--font-body)',fontSize:'.875rem',
+                          color: label==='Color' ? 'var(--primary)' : 'var(--on-surface)',
+                          fontWeight: label==='Color' ? 700 : 500,
+                        }}>
+                          {label==='Color' && (
+                            <span style={{display:'inline-flex',alignItems:'center',gap:'.4rem'}}>
+                              <span style={{width:14,height:14,borderRadius:'50%',background:COLOR_HEX[value]||'#999',display:'inline-block',border:isLightColor(value)?'1px solid var(--outline-var)':'none',flexShrink:0}} />
+                              {value}
+                            </span>
+                          )}
+                          {label!=='Color' && value}
+                        </span>
+                      )}
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
 

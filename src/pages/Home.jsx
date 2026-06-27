@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { getFeaturedPhonesInstant, getReviewsInstant, getBannersInstant } from '../lib/phones'
 import { buildWhatsAppUrl } from '../lib/constants'
 import ProductCard from '../components/ProductCard'
+import WatermarkSection from '../components/WatermarkSection'
+import ReviewCard from '../components/ReviewCard'
 
 /* ── Load banners from Firebase ──────────────────── */
 function useBanners() {
@@ -64,7 +66,7 @@ function BannerSlideshow({ banners }) {
 export default function Home() {
   const [featured, setFeatured] = useState([])
   const [reviews,  setReviews]  = useState([])
-  const banners = useBanners()
+  const banners    = useBanners()
 
   useEffect(() => {
     getFeaturedPhonesInstant(setFeatured)
@@ -216,7 +218,7 @@ export default function Home() {
       <section style={{ background:'var(--on-bg)', padding:'5rem 0', overflow:'hidden' }}>
         <div style={{ maxWidth:1280, margin:'0 auto', padding:'0 2.5rem', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4rem', alignItems:'center' }} className="pixel-g">
           <div style={{ aspectRatio:'4/5', borderRadius:24, overflow:'hidden', boxShadow:'0 24px 40px rgba(0,0,0,.3)', background:'#1a1d22' }}>
-            <img src="/images/pixel-hero.jpg"
+            <img src='/images/pixel-hero.jpg'
               onError={e => e.target.style.display='none'}
               alt="Pixel camera" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
           </div>

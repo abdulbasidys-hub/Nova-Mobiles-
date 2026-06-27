@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-
+import { buildWhatsAppUrl } from '../lib/constants'
 const NAV = [
   { to: '/',            l: 'Home' },
   { to: '/shop',        l: 'Shop' },
@@ -10,26 +10,22 @@ const NAV = [
 ]
 
 function Logo() {
-  const [ok, setOk] = useState(true)
+  const [imgOk, setImgOk] = useState(true)
+
   return (
     <Link to="/" style={{ display:'flex', alignItems:'center', gap:'.55rem', textDecoration:'none', flexShrink:0 }}>
-      {ok && (
+      {/* Logo image — hidden if fails to load */}
+      {imgOk && (
         <img
-          src="/images/logo.png"
-          alt="Nova Mobiles Plus logo"
-          onError={() => setOk(false)}
-          style={{ height:36, width:'auto', objectFit:'contain' }}
+          src='/logo.png'
+          alt=""
+          onError={() => setImgOk(false)}
+          style={{ height:32, width:'auto', objectFit:'contain', display:'block', flexShrink:0 }}
         />
       )}
-      <span style={{
-        fontFamily:'var(--font-display)',
-        fontWeight: 700,
-        fontSize: '1.05rem',
-        color: 'var(--primary)',
-        letterSpacing: '-.01em',
-        whiteSpace: 'nowrap',
-      }}>
-        Nova Mobiles <span style={{ fontWeight:700 }}>Plus</span>
+      {/* Name always visible */}
+      <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:'1.02rem', letterSpacing:'-.01em', color:'var(--primary)', whiteSpace:'nowrap' }}>
+        Nova Mobiles Plus
       </span>
     </Link>
   )
@@ -42,9 +38,10 @@ export default function Navbar() {
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 16)
-    window.addEventListener('scroll', fn, { passive:true }); fn()
+    window.addEventListener('scroll', fn, { passive: true }); fn()
     return () => window.removeEventListener('scroll', fn)
   }, [])
+
   useEffect(() => setOpen(false), [pathname])
 
   return (
@@ -59,18 +56,12 @@ export default function Navbar() {
         boxShadow: scrolled ? '0 1px 12px rgba(60,64,67,.10)' : 'none',
         transition: 'box-shadow .25s',
       }}>
-        <div style={{
-          maxWidth: 1280, margin:'0 auto', padding:'0 2.5rem',
-          height:'100%', display:'flex', alignItems:'center', position:'relative',
-        }}>
-          {/* Logo — left */}
+        <div style={{ maxWidth:1280, margin:'0 auto', padding:'0 2.5rem', height:'100%', display:'flex', alignItems:'center', position:'relative' }}>
+
           <Logo />
 
-          {/* Nav — centered absolutely */}
-          <nav className="desk-nav" style={{
-            position:'absolute', left:'50%', transform:'translateX(-50%)',
-            display:'flex', alignItems:'center', gap:'.25rem',
-          }}>
+          {/* Nav links — centered */}
+          <nav className="desk-nav" style={{ position:'absolute', left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:'.25rem' }}>
             {NAV.map(n => {
               const act = pathname === n.to || (n.to !== '/' && pathname.startsWith(n.to))
               return (
@@ -93,7 +84,7 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* Hamburger — mobile only, pushed to right */}
+          {/* Hamburger */}
           <button className="mob-btn" onClick={() => setOpen(o => !o)} style={{
             display:'none', marginLeft:'auto',
             background:'var(--surface-low)', border:'none', borderRadius:8,
@@ -136,8 +127,8 @@ export default function Navbar() {
 
       <style>{`
         @media(max-width:768px){
-          .desk-nav{ display:none!important }
-          .mob-btn { display:flex!important }
+          .desk-nav { display:none!important }
+          .mob-btn  { display:flex!important }
         }
       `}</style>
     </>
