@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getPhoneBySlug, getAllPhones, getCatalogById } from '../lib/phones'
+import { getPhoneBySlug, getAllPhones, getCatalogById, getAccessoriesByCatalog } from '../lib/phones'
 import { buildPhoneWhatsAppUrl, formatPrice } from '../lib/constants'
 import ProductCard from '../components/ProductCard'
 
@@ -135,7 +135,8 @@ export default function PhoneDetail() {
   const [load,        setLoad]        = useState(true)
   const [imgIdx,      setImgIdx]      = useState(0)
   const [comparing,   setComparing]   = useState(false)
-  const [selColor,    setSelColor]    = useState(null)  // currently selected color
+  const [selColor,    setSelColor]    = useState(null)
+  const [accessories, setAccessories] = useState([])  // currently selected color
 
   useEffect(() => {
     setLoad(true); setImgIdx(0); setComparing(false); setSelColor(null)
@@ -146,6 +147,7 @@ export default function PhoneDetail() {
         // Load catalog for specs + color images
         if (d.catalogId) {
           getCatalogById(d.catalogId).then(setCatalog)
+          getAccessoriesByCatalog(d.catalogId).then(setAccessories).catch(()=>{})
         }
         getAllPhones().then(all => {
           setAllPhones(all)
@@ -172,10 +174,19 @@ export default function PhoneDetail() {
   const sold = !phone.available
 
   // Color images from catalog
-  const colorImages   = catalog?.colorImages || {}
-  const colorOptions  = Object.keys(colorImages)   // colors that actually have images
-  const currentImages = selColor && colorImages[selColor]?.length
-    ? colorImages[selColor]
+  const colorImages  = catalog?.colorImages || {}
+  const colorOptions = Object.keys(colorImages)
+
+  // Normalise colorImages — may be {front,back,side,extra} object or legacy array
+  const getColorImageArray = (color) => {
+    const val = colorImages[color]
+    if (!val) return []
+    if (Array.isArray(val)) return val.filter(Boolean)
+    return Object.values(val).filter(Boolean)  // front, back, side, extra
+  }
+
+  const currentImages = selColor && getColorImageArray(selColor).length
+    ? getColorImageArray(selColor)
     : phone.images?.length
     ? phone.images
     : []
@@ -424,6 +435,40 @@ export default function PhoneDetail() {
             ))}
           </div>
         </div>
+
+        {/* Accessories */}
+        {accessories.length > 0 && (
+          <div style={{marginBottom:'3rem'}}>
+            <h3 style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'1.05rem',marginBottom:'1.1rem'}}>
+              Accessories for this phone
+            </h3>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:'1rem'}}>
+              {accessories.map(acc => (
+                <div key={acc.id} style={{border:'1px solid var(--outline-var)',borderRadius:12,overflow:'hidden',background:'var(--surface-lowest)'}}>
+                  <div style={{aspectRatio:'1/1',background:'var(--surface-low)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
+                    {acc.images?.[0]
+                      ? <img src={acc.images[0]} alt={acc.name} style={{width:'100%',height:'100%',objectFit:'contain',padding:'8%'}}/>
+                      : <span className="material-symbols-outlined" style={{fontSize:40,opacity:.2}}>cable</span>
+                    }
+                  </div>
+                  <div style={{padding:'.65rem .75rem'}}>
+                    <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.85rem',marginBottom:'.2rem'}}>{acc.name}</p>
+                    <p style={{color:'var(--primary)',fontWeight:700,fontSize:'.9rem'}}>{formatPrice(acc.price)}</p>
+                    {acc.images?.length > 1 && (
+                      <div style={{display:'flex',gap:4,marginTop:'.4rem'}}>
+                        {acc.images.slice(1).map((img,i)=>(
+                          <div key={i} style={{width:28,height:28,borderRadius:4,overflow:'hidden',border:'1px solid var(--outline-var)'}}>
+                            <img src={img} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}}/>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Related */}
         {rel.length>0&&(

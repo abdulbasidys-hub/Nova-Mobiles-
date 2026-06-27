@@ -87,8 +87,17 @@ export async function deletePhone(id) {
 /* ── Catalog ─────────────────────────────────────── */
 export async function getAllCatalog() {
   try {
-    const snap = await getDocs(query(collection(db,'catalog'), orderBy('brand'), orderBy('model')))
-    return snap.docs.map(d => ({id:d.id,...d.data()}))
+    const snap = await getDocs(collection(db,'catalog'))
+    const docs = snap.docs.map(d => ({id:d.id,...d.data()}))
+    // Sort in JS: brand order first, then newest model first within brand
+    const BORDER = ['Google Pixel','iPhone','Huawei','Honor','Oppo','Moto G','Samsung']
+    const getNum = name => { const n = (name||'').match(/\d+/g); return n ? Math.max(...n.map(Number)) : 0 }
+    return docs.sort((a,b) => {
+      const bi = BORDER.indexOf(a.brand), bj = BORDER.indexOf(b.brand)
+      const brandDiff = (bi===-1?99:bi) - (bj===-1?99:bj)
+      if (brandDiff !== 0) return brandDiff
+      return getNum(b.model) - getNum(a.model) || (a.model||'').localeCompare(b.model||'')
+    })
   } catch { return [] }
 }
 
@@ -156,4 +165,24 @@ export async function addBanner(url) {
 
 export async function deleteBanner(id) {
   return deleteDoc(doc(db,'banners',id))
+}
+
+/* ── Accessories ────────────────────────────────── */
+export async function getAccessoriesByCatalog(catalogId) {
+  try {
+    const snap = await getDocs(query(collection(db,'accessories'), where('catalogId','==',catalogId)))
+    return snap.docs.map(d => ({id:d.id,...d.data()}))
+  } catch { return [] }
+}
+
+export async function addAccessory(data) {
+  return addDoc(collection(db,'accessories'), {...data, createdAt:serverTimestamp()})
+}
+
+export async function updateAccessory(id, data) {
+  return updateDoc(doc(db,'accessories',id), {...data, updatedAt:serverTimestamp()})
+}
+
+export async function deleteAccessory(id) {
+  return deleteDoc(doc(db,'accessories',id))
 }
