@@ -15,7 +15,7 @@ const DOMAIN = '@novamobilesplus.com'
 const BRAND_COLORS = {
   'Huawei':       ['Space Black','Silver Frost','Breathing Crystal','Emerald Green','Nebula Red','Cocoa Gold','Pearl White','Dark Blue'],
   'Honor':        ['Titanium Silver','Midnight Black','Emerald Green','Purple','Cyan Lake','Gold','Magic Night Black','Ice Silver'],
-  'Moto G':       ['Mineral Gray','Viva Magenta','Steel Blue','Blush Gold','Charcoal','Sky Blue','Sage Green','Midnight Blue'],
+  'Motorolla':       ['Mineral Gray','Viva Magenta','Steel Blue','Blush Gold','Charcoal','Sky Blue','Sage Green','Midnight Blue'],
   'Google Pixel': ['Obsidian','Porcelain','Bay','Hazel','Mint','Coral','Lemongrass','Sage','Charcoal','Pearl','Snow','Peony','Matcha','Wintergreen','Mocha'],
   'iPhone':       ['Black Titanium','White Titanium','Natural Titanium','Desert Titanium','Pink','Black','White','Blue','Green','Yellow','Purple','Red','Starlight','Midnight','Storm Blue','Ultramarine','Teal','Sand'],
   'Samsung':      ['Phantom Black','Phantom White','Titanium Black','Titanium Gray','Titanium Blue','Titanium Violet','Titanium Yellow','Cream','Lavender','Green','Navy','Lime','Graphite'],
@@ -43,8 +43,8 @@ const COLOR_HEX = {
 
 const STORAGE_OPTIONS   = ['32GB','64GB','128GB','256GB','512GB','1TB']
 const CONDITION_OPTIONS = ['Brand New','London Used','Nigerian Used']
-const BRAND_ORDER       = ['Google Pixel','iPhone','Huawei','Honor','Oppo','Moto G','Samsung']
-const BRAND_ICONS       = {'Google Pixel':'🟢','iPhone':'🍎','Huawei':'🔴','Honor':'⚪','Oppo':'🟠','Moto G':'🟣','Samsung':'🔵'}
+const BRAND_ORDER       = ['Google Pixel','iPhone','Huawei','Honor','Oppo','Motorolla','Samsung']
+const BRAND_ICONS       = {'Google Pixel':'🟢','iPhone':'🍎','Huawei':'🔴','Honor':'⚪','Oppo':'🟠','Motorolla':'🟣','Samsung':'🔵'}
 
 /* ── Shared UI ───────────────────────────────────── */
 const I = { background:'#F2F4F6', color:'#191C1E', border:'1.5px solid #C1C6D6', borderRadius:8, padding:'.55rem .8rem', fontSize:'.85rem', fontFamily:'inherit', outline:'none', width:'100%' }
@@ -136,8 +136,8 @@ function ImageUploader({ storagePath, onUploaded, label='Upload Photo', hint, co
 
   return (
     <div>
-      <input ref={inputRef} type="file" accept="image/*" onChange={handleFile}
-        style={{display:'none'}} capture="environment" />
+      <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/svg+xml,image/*" onChange={handleFile}
+        style={{display:'none'}} />
       <button type="button" onClick={() => inputRef.current?.click()} disabled={progress !== null} style={btnStyle}>
         {progress !== null ? (
           <>
@@ -302,7 +302,7 @@ const SPEC_FIELDS = [
   {key:'dimensions',   label:'Dimensions',      placeholder:'e.g. 162.6 × 76.5 × 8.8mm'},
   {key:'weight',       label:'Weight',          placeholder:'e.g. 213g'},
 ]
-const BRANDS_LIST = ['Google Pixel','iPhone','Huawei','Honor','Oppo','Moto G','Other']
+const BRANDS_LIST = ['Google Pixel','iPhone','Huawei','Honor','Oppo','Motorolla','Other']
 
 function CatalogForm({initial, onSave, onCancel, saving}) {
   const [form,        setForm]        = useState(initial || {brand:'',model:'',...Object.fromEntries(SPEC_FIELDS.map(f=>[f.key,''])),availableColors:['','']})
@@ -405,13 +405,69 @@ function CatalogForm({initial, onSave, onCancel, saving}) {
   )
 }
 
+function CatalogDetailModal({cat, onEdit, onDelete, onClose, deleting}) {
+  // Close on backdrop click
+  return (
+    <div
+      onClick={onClose}
+      style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,.45)',display:'flex',alignItems:'center',justifyContent:'center',padding:'1rem'}}>
+      <div
+        onClick={e=>e.stopPropagation()}
+        style={{background:'#fff',borderRadius:16,width:'100%',maxWidth:480,maxHeight:'85vh',overflowY:'auto',boxShadow:'0 8px 40px rgba(0,0,0,.22)'}}>
+        {/* Modal header */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'1rem 1.25rem',borderBottom:'1px solid #E6E8EA',position:'sticky',top:0,background:'#fff',zIndex:1}}>
+          <div>
+            <p style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'1rem'}}>{cat.model}</p>
+            <p style={{fontSize:'.72rem',color:'#727785',marginTop:'.1rem'}}>{cat.brand}</p>
+          </div>
+          <button onClick={onClose} style={{background:'#F2F4F6',border:'none',borderRadius:8,width:30,height:30,cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',color:'#414754'}}>✕</button>
+        </div>
+        {/* Spec rows */}
+        <div style={{padding:'1rem 1.25rem'}}>
+          {[
+            ['Display',    cat.display],
+            ['Rear Camera',cat.camera],
+            ['Front Camera',cat.frontCamera],
+            ['Battery',    cat.battery],
+            ['Charging',   cat.charging],
+            ['OS',         cat.os],
+            ['Dimensions', cat.dimensions],
+            ['Weight',     cat.weight],
+          ].filter(([,v])=>v).map(([label,val])=>(
+            <div key={label} style={{display:'flex',gap:'.75rem',marginBottom:'.65rem',fontSize:'.82rem'}}>
+              <span style={{color:'#727785',fontWeight:700,flexShrink:0,minWidth:90,fontSize:'.72rem',paddingTop:'.05rem'}}>{label}</span>
+              <span style={{color:'#191C1E',lineHeight:1.5,whiteSpace:'pre-line'}}>{val}</span>
+            </div>
+          ))}
+          {/* Colours */}
+          {cat.availableColors?.filter(Boolean).length > 0 && (
+            <div style={{marginTop:'.5rem'}}>
+              <p style={{fontSize:'.65rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.45rem'}}>Available Colours</p>
+              <div style={{display:'flex',flexWrap:'wrap',gap:'.35rem'}}>
+                {cat.availableColors.filter(Boolean).map(col=>(
+                  <span key={col} style={{fontSize:'.72rem',background:'#E8F0FE',color:'#1967D2',padding:'.2rem .6rem',borderRadius:999,fontWeight:600}}>{col}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        {/* Actions */}
+        <div style={{display:'flex',gap:'.65rem',padding:'1rem 1.25rem',borderTop:'1px solid #E6E8EA',position:'sticky',bottom:0,background:'#fff'}}>
+          <button onClick={()=>onEdit(cat)} style={{flex:1,background:'#005BBF',color:'#fff',border:'none',borderRadius:9,padding:'.6rem 0',fontFamily:'inherit',fontWeight:700,fontSize:'.85rem',cursor:'pointer'}}>Edit</button>
+          <button onClick={()=>onDelete(cat)} disabled={deleting} style={{flex:1,background:'#FCE8E6',color:'#C5221F',border:'none',borderRadius:9,padding:'.6rem 0',fontFamily:'inherit',fontWeight:700,fontSize:'.85rem',cursor:'pointer',opacity:deleting?.6:1}}>{deleting?'Deleting…':'Delete'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TabCatalog({catalog, setCatalog, showToast}) {
   const [adding,   setAdding]   = useState(false)
   const [editing,  setEditing]  = useState(null)
   const [saving,   setSaving]   = useState(false)
   const [deleting, setDeleting] = useState({})
   const [collapsed,setCollapsed]= useState({})
-  const [expanded, setExpanded] = useState({})
+  const [modal,    setModal]    = useState(null)  // cat object or null
 
   const save = async (data) => {
     setSaving(true)
@@ -432,6 +488,7 @@ function TabCatalog({catalog, setCatalog, showToast}) {
 
   const del = async (cat) => {
     if (!confirm(`Delete "${cat.model}" from catalog?`)) return
+    setModal(null)
     setDeleting(d=>({...d,[cat.id]:true}))
     try {
       await deleteCatalogProduct(cat.id)
@@ -458,7 +515,18 @@ function TabCatalog({catalog, setCatalog, showToast}) {
 
   return (
     <div>
-      <SectionHead title="Product Catalog" subtitle="Master specs per model. Editing here updates all variants automatically." action={<Btn onClick={()=>setAdding(true)}>+ New Model</Btn>}/>
+      {/* Modal */}
+      {modal && (
+        <CatalogDetailModal
+          cat={modal}
+          onClose={()=>setModal(null)}
+          onEdit={cat=>{setModal(null);setEditing(cat)}}
+          onDelete={del}
+          deleting={deleting[modal.id]}
+        />
+      )}
+
+      <SectionHead title="Product Catalog" subtitle="Tap any model to view details, edit, or delete." action={<Btn onClick={()=>setAdding(true)}>+ New Model</Btn>}/>
 
       {catalog.length===0&&(
         <div style={{textAlign:'center',padding:'4rem',background:'#F2F4F6',borderRadius:12,color:'#727785'}}>
@@ -480,44 +548,19 @@ function TabCatalog({catalog, setCatalog, showToast}) {
           </button>
 
           {!collapsed[brand]&&(
-            <div style={{padding:'.75rem',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:'.6rem',background:'#fff',borderTop:'1px solid #E6E8EA'}}>
+            <div style={{padding:'.75rem',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:'.6rem',background:'#fff',borderTop:'1px solid #E6E8EA'}}>
               {list.map(cat=>(
                 <div key={cat.id}
-                  onClick={()=>setExpanded(prev=>({...prev,[cat.id]:!prev[cat.id]}))}
-                  style={{border:`1px solid ${expanded[cat.id]?'#005BBF':'#C1C6D6'}`,borderRadius:10,overflow:'hidden',cursor:'pointer',opacity:deleting[cat.id]?.5:1,transition:'border-color .15s',background:expanded[cat.id]?'#F7FAFF':'#fff'}}>
-                  <div style={{padding:'.65rem .75rem',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'.4rem'}}>
-                    <div>
-                      <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.82rem',lineHeight:1.2}}>{cat.model}</p>
-                      {cat.availableColors?.length>0&&(
-                        <p style={{fontSize:'.65rem',color:'#727785',marginTop:'.18rem'}}>{cat.availableColors.length} colour{cat.availableColors.length!==1?'s':''}</p>
-                      )}
-                    </div>
-                    <span style={{fontSize:11,color:'#727785',flexShrink:0}}>{expanded[cat.id]?'▲':'▼'}</span>
-                  </div>
-
-                  {expanded[cat.id]&&(
-                    <div style={{borderTop:'1px solid #E6E8EA',padding:'.65rem .75rem'}} onClick={e=>e.stopPropagation()}>
-                      {[
-                        ['Display',cat.display],['Camera',cat.camera],['Battery',cat.battery],
-                        ['Charging',cat.charging],['OS',cat.os],['Dimensions',cat.dimensions],['Weight',cat.weight]
-                      ].filter(([,v])=>v).map(([label,val])=>(
-                        <div key={label} style={{fontSize:'.72rem',marginBottom:'.25rem',display:'flex',gap:'.35rem'}}>
-                          <span style={{color:'#727785',fontWeight:600,flexShrink:0,minWidth:60}}>{label}</span>
-                          <span style={{color:'#191C1E'}}>{val.split('\n')[0]}{val.includes('\n')?'…':''}</span>
-                        </div>
-                      ))}
-                      {cat.availableColors?.filter(Boolean).length>0&&(
-                        <div style={{marginTop:'.4rem',display:'flex',flexWrap:'wrap',gap:4}}>
-                          {cat.availableColors.filter(Boolean).map(col=>(
-                            <span key={col} style={{fontSize:'.62rem',background:'#E8F0FE',color:'#1967D2',padding:'.1rem .45rem',borderRadius:999,fontWeight:600}}>{col}</span>
-                          ))}
-                        </div>
-                      )}
-                      <div style={{display:'flex',gap:'.4rem',marginTop:'.65rem'}}>
-                        <button onClick={()=>setEditing(cat)} style={{flex:1,background:'#E8F0FE',color:'#1967D2',border:'none',borderRadius:7,padding:'.32rem 0',fontFamily:'inherit',fontWeight:700,fontSize:'.75rem',cursor:'pointer'}}>Edit</button>
-                        <button onClick={()=>del(cat)} disabled={deleting[cat.id]} style={{flex:1,background:'#FCE8E6',color:'#C5221F',border:'none',borderRadius:7,padding:'.32rem 0',fontFamily:'inherit',fontWeight:700,fontSize:'.75rem',cursor:'pointer'}}>{deleting[cat.id]?'…':'Delete'}</button>
-                      </div>
-                    </div>
+                  onClick={()=>setModal(cat)}
+                  style={{border:'1px solid #C1C6D6',borderRadius:10,padding:'.65rem .75rem',cursor:'pointer',opacity:deleting[cat.id]?.4:1,transition:'all .15s',background:'#fff',userSelect:'none'}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor='#005BBF';e.currentTarget.style.background='#F7FAFF'}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor='#C1C6D6';e.currentTarget.style.background='#fff'}}>
+                  <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.82rem',lineHeight:1.2,marginBottom:'.2rem'}}>{cat.model}</p>
+                  {cat.availableColors?.length>0&&(
+                    <p style={{fontSize:'.65rem',color:'#727785'}}>{cat.availableColors.length} colour{cat.availableColors.length!==1?'s':''}</p>
+                  )}
+                  {cat.display&&(
+                    <p style={{fontSize:'.63rem',color:'#414754',marginTop:'.25rem',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cat.display}</p>
                   )}
                 </div>
               ))}
@@ -653,13 +696,24 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
    - colorImages shape: { [color]: { front: url|'', back: url|'', side: url|'' } }
 ═══════════════════════════════════════════════ */
 function TabImages({catalog, phones, showToast}) {
+  const [selBrand,    setSelBrand]    = useState('')
   const [selId,       setSelId]       = useState('')
   const [colorImages, setColorImages] = useState({})
-  const [activeView,  setActiveView]  = useState({})
   const [saving,      setSaving]      = useState(false)
 
+  const availableBrands = [...new Set(
+    [...BRAND_ORDER.filter(b => catalog.some(c => c.brand === b)),
+     ...catalog.map(c => c.brand).filter(b => !BRAND_ORDER.includes(b))]
+  )]
+  const modelsForBrand  = catalog.filter(c => c.brand === selBrand)
   const selectedCatalog = catalog.find(c => c.id === selId)
   const catalogColors   = selectedCatalog?.availableColors?.filter(Boolean) || []
+
+  const handleBrandSelect = (brand) => {
+    setSelBrand(brand)
+    setSelId('')
+    setColorImages({})
+  }
 
   const handleSelect = (id) => {
     setSelId(id)
@@ -676,9 +730,6 @@ function TabImages({catalog, phones, showToast}) {
       }
     })
     setColorImages(normalised)
-    const views = {}
-    ;(cat?.availableColors || []).filter(Boolean).forEach(c => { views[c] = 'front' })
-    setActiveView(views)
   }
 
   const setSlot = (color, slot, url) => {
@@ -710,25 +761,47 @@ function TabImages({catalog, phones, showToast}) {
     <div>
       <SectionHead
         title="Phone Images"
-        subtitle="Upload Front, Back, and Side photos per colour. Only colours added in Catalog are shown."
+        subtitle="Upload Front, Back, and Side photos per colour."
       />
 
-      <div style={{background:'#F2F4F6',borderRadius:12,padding:'1.25rem',marginBottom:'1.5rem',border:'1px solid #C1C6D6',maxWidth:480}}>
-        <Lbl>Select Phone Model</Lbl>
-        <select value={selId} onChange={e=>handleSelect(e.target.value)} style={{...I,appearance:'none'}}>
-          <option value="">Choose a model…</option>
-          {BRAND_ORDER.map(brand=>{
-            const models=catalog.filter(c=>c.brand===brand)
-            if(!models.length) return null
-            return <optgroup key={brand} label={brand}>{models.map(c=><option key={c.id} value={c.id}>{c.model}</option>)}</optgroup>
-          })}
-        </select>
+      {/* Step 1 — Brand tabs */}
+      <div style={{marginBottom:'1rem'}}>
+        <p style={{fontSize:'.65rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.55rem'}}>Step 1 — Brand</p>
+        <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+          {availableBrands.map(brand => (
+            <button key={brand} onClick={() => handleBrandSelect(brand)}
+              style={{display:'flex',alignItems:'center',gap:'.35rem',padding:'.38rem .85rem',borderRadius:8,border:`1.5px solid ${selBrand===brand?'#005BBF':'#C1C6D6'}`,background:selBrand===brand?'#E8F0FE':'#fff',color:selBrand===brand?'#005BBF':'#414754',fontFamily:'inherit',fontWeight:selBrand===brand?700:500,fontSize:'.82rem',cursor:'pointer',transition:'all .12s'}}>
+              <span>{BRAND_ICONS[brand]||'📱'}</span>{brand}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {!selId && (
+      {/* Step 2 — Model (only when brand selected) */}
+      {selBrand && (
+        <div style={{marginBottom:'1.5rem'}}>
+          <p style={{fontSize:'.65rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.55rem'}}>Step 2 — Model</p>
+          <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
+            {modelsForBrand.map(cat => (
+              <button key={cat.id} onClick={() => handleSelect(cat.id)}
+                style={{padding:'.38rem .85rem',borderRadius:8,border:`1.5px solid ${selId===cat.id?'#005BBF':'#C1C6D6'}`,background:selId===cat.id?'#E8F0FE':'#fff',color:selId===cat.id?'#005BBF':'#414754',fontFamily:'inherit',fontWeight:selId===cat.id?700:500,fontSize:'.82rem',cursor:'pointer',transition:'all .12s'}}>
+                {cat.model}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!selBrand && (
         <div style={{textAlign:'center',padding:'3rem',color:'#727785',background:'#F2F4F6',borderRadius:12}}>
           <div style={{fontSize:36,marginBottom:'1rem'}}>🎨</div>
-          <p style={{fontWeight:600}}>Select a model to manage its colour photos</p>
+          <p style={{fontWeight:600}}>Select a brand above to get started</p>
+        </div>
+      )}
+
+      {selBrand && !selId && (
+        <div style={{textAlign:'center',padding:'2.5rem',color:'#727785',background:'#F2F4F6',borderRadius:12}}>
+          <p style={{fontWeight:600}}>Now select a model</p>
         </div>
       )}
 
@@ -745,59 +818,49 @@ function TabImages({catalog, phones, showToast}) {
             const light = ['White','Porcelain','Pearl','Snow','Starlight','Natural Titanium','Cream','Sand'].some(l=>color.includes(l))
             const imgs  = colorImages[color] || {front:'',back:'',side:''}
             const filled = SLOTS.filter(s=>imgs[s]).length
-            const current = activeView[color] || 'front'
 
             return (
               <div key={color} style={{marginBottom:'1rem',border:'1px solid #C1C6D6',borderRadius:12,overflow:'hidden'}}>
-                {/* Color header */}
-                <div style={{display:'flex',alignItems:'center',gap:'.75rem',padding:'.65rem 1rem',background:filled===3?'#E6F4EA':'#F2F4F6',borderBottom:'1px solid #E6E8EA'}}>
-                  <div style={{width:20,height:20,borderRadius:'50%',background:hex,flexShrink:0,border:light?'1.5px solid #C1C6D6':'none',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
+                {/* Colour header */}
+                <div style={{display:'flex',alignItems:'center',gap:'.75rem',padding:'.6rem 1rem',background:filled===3?'#E6F4EA':'#F2F4F6',borderBottom:'1px solid #E6E8EA'}}>
+                  <div style={{width:16,height:16,borderRadius:'50%',background:hex,flexShrink:0,border:light?'1.5px solid #C1C6D6':'none',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
                   <span style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.88rem',flex:1}}>{color}</span>
-                  <span style={{fontSize:'.68rem',color:filled===3?'#137333':'#727785',fontWeight:600}}>{filled}/3 photos</span>
+                  <span style={{fontSize:'.68rem',color:filled===3?'#137333':'#727785',fontWeight:600}}>{filled}/3</span>
                 </div>
 
-                {/* Front / Back / Side tabs */}
-                <div style={{display:'flex',borderBottom:'1px solid #E6E8EA',background:'#fff'}}>
-                  {SLOTS.map(slot => {
-                    const hasImg  = !!imgs[slot]
-                    const isActive = current === slot
+                {/* Three upload slots in one row */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:0,background:'#fff'}}>
+                  {SLOTS.map((slot, si) => {
+                    const hasImg = !!imgs[slot]
                     return (
-                      <button key={slot}
-                        onClick={() => setActiveView(prev=>({...prev,[color]:slot}))}
-                        style={{flex:1,padding:'.42rem .5rem',border:'none',borderBottom:isActive?'2px solid #005BBF':'2px solid transparent',background:'transparent',fontFamily:'inherit',fontWeight:isActive?700:500,fontSize:'.78rem',color:isActive?'#005BBF':hasImg?'#137333':'#727785',cursor:'pointer',textTransform:'capitalize',display:'flex',alignItems:'center',justifyContent:'center',gap:'.3rem',transition:'color .12s'}}>
-                        {hasImg ? '✓ ' : ''}{slot}
-                      </button>
+                      <div key={slot} style={{padding:'.6rem .7rem',borderRight:si<2?'1px solid #E6E8EA':'none'}}>
+                        {/* Slot heading */}
+                        <p style={{fontSize:'.62rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:hasImg?'#137333':'#414754',marginBottom:'.35rem',textAlign:'center'}}>
+                          {hasImg ? '✓ ' : ''}{slot}
+                        </p>
+                        {/* Thumbnail — small fixed height */}
+                        <div style={{width:'100%',height:64,background:'#F2F4F6',borderRadius:6,overflow:'hidden',border:`1px solid ${hasImg?'#C4E8CE':'#E6E8EA'}`,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'.4rem'}}>
+                          {hasImg
+                            ? <img src={imgs[slot]} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}} onError={e=>{e.target.style.display='none'}}/>
+                            : <span style={{fontSize:18,opacity:.15}}>📱</span>
+                          }
+                        </div>
+                        {/* Upload button */}
+                        <ImageUploader
+                          storagePath={`catalog/${selId}/${color.toLowerCase().replace(/\s+/g,'-')}/${slot}`}
+                          onUploaded={url => setSlot(color, slot, url)}
+                          label={hasImg ? 'Replace' : 'Upload'}
+                          compact
+                        />
+                        {hasImg && (
+                          <button onClick={() => clearSlot(color, slot)}
+                            style={{display:'block',width:'100%',marginTop:'.25rem',background:'none',border:'none',color:'#C5221F',cursor:'pointer',fontSize:'.65rem',fontWeight:600,padding:0,fontFamily:'inherit',textAlign:'center'}}>
+                            ✕ Remove
+                          </button>
+                        )}
+                      </div>
                     )
                   })}
-                </div>
-
-                {/* Active slot */}
-                <div style={{padding:'.85rem 1rem',background:'#fff',display:'flex',alignItems:'flex-start',gap:'1rem'}}>
-                  {/* Thumbnail */}
-                  <div style={{width:70,height:88,background:'#F2F4F6',borderRadius:8,overflow:'hidden',border:'1px solid #E6E8EA',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                    {imgs[current]
-                      ? <img src={imgs[current]} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}} onError={e=>{e.target.style.display='none'}}/>
-                      : <span style={{fontSize:22,opacity:.2}}>📱</span>
-                    }
-                  </div>
-                  {/* Upload / remove */}
-                  <div style={{flex:1,minWidth:0}}>
-                    <p style={{fontSize:'.7rem',color:'#727785',marginBottom:'.5rem',textTransform:'capitalize'}}>
-                      {current} view{imgs[current]?' — replace below':''}
-                    </p>
-                    <ImageUploader
-                      storagePath={`catalog/${selId}/${color.toLowerCase().replace(/\s+/g,'-')}/${current}`}
-                      onUploaded={url => setSlot(color, current, url)}
-                      label={imgs[current] ? `Replace ${current}` : `Upload ${current}`}
-                      compact
-                    />
-                    {imgs[current] && (
-                      <button onClick={() => clearSlot(color, current)}
-                        style={{marginTop:'.4rem',background:'none',border:'none',color:'#C5221F',cursor:'pointer',fontSize:'.72rem',fontWeight:600,padding:0,fontFamily:'inherit'}}>
-                        ✕ Remove
-                      </button>
-                    )}
-                  </div>
                 </div>
               </div>
             )
