@@ -1,18 +1,7 @@
 import { useState, useEffect } from 'react'
-import { db } from '../lib/firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { getSiteImagesInstant } from '../lib/phones'
 import { buildWhatsAppUrl, SITE } from '../lib/constants'
 import WatermarkSection from '../components/WatermarkSection'
-
-function useSiteImage(key, fallback) {
-  const [url, setUrl] = useState(fallback)
-  useEffect(() => {
-    getDoc(doc(db, 'settings', 'siteImages'))
-      .then(snap => { if (snap.exists() && snap.data()[key]) setUrl(snap.data()[key]) })
-      .catch(() => {})
-  }, [key])
-  return url
-}
 
 function SiteImage({ src, alt, fallbackIcon, fallbackLabel }) {
   const [errored, setErrored] = useState(false)
@@ -31,8 +20,10 @@ function SiteImage({ src, alt, fallbackIcon, fallbackLabel }) {
 }
 
 export default function About() {
-  const ownerSrc = useSiteImage('ownerPhoto', '/images/owner.jpg')
-  const shopSrc  = useSiteImage('shopPhoto',  '/images/shop.jpg')
+  const [siteImgs, setSiteImgs] = useState({})
+  useEffect(() => { getSiteImagesInstant(setSiteImgs) }, [])
+  const ownerSrc = siteImgs.ownerPhoto || '/images/owner.jpg'
+  const shopSrc  = siteImgs.shopPhoto  || '/images/shop.jpg'
 
   return (
     <div className="pt">

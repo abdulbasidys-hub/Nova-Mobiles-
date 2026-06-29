@@ -17,7 +17,7 @@ function Layout() {
 
   return (
     <ThemeProvider>
-      {!isAdmin && <Navbar />}
+      <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
@@ -27,7 +27,7 @@ function Layout() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
-      {!isAdmin && <Footer />}
+      {!isAdmin && <Footer />}  {/* Footer hidden on admin */}
       {!isAdmin && <WhatsAppFloat />}
     </ThemeProvider>
   )

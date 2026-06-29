@@ -181,3 +181,11 @@ export async function updateAccessory(id, data) {
 export async function deleteAccessory(id) {
   return deleteDoc(doc(db,'accessories',id))
 }
+
+/* ── Site Images ─────────────────────────────────── */
+export function getSiteImagesInstant(onUpdate) {
+  onUpdate({})
+  getDoc(doc(db,'settings','siteImages'))
+    .then(snap => { if (snap.exists()) onUpdate(snap.data()) })
+    .catch(() => {})
+}

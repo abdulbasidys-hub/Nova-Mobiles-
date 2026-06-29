@@ -1,18 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { db } from '../lib/firebase'
-import { doc, getDoc } from 'firebase/firestore'
-
-function useSiteImage(key, fallback) {
-  const [url, setUrl] = useState(fallback)
-  useEffect(() => {
-    getDoc(doc(db, 'settings', 'siteImages'))
-      .then(snap => { if (snap.exists() && snap.data()[key]) setUrl(snap.data()[key]) })
-      .catch(() => {})
-  }, [key])
-  return url
-}
 import { Link } from 'react-router-dom'
-import { getFeaturedPhonesInstant, getReviewsInstant, getBannersInstant } from '../lib/phones'
+import { getFeaturedPhonesInstant, getReviewsInstant, getBannersInstant, getSiteImagesInstant } from '../lib/phones'
 import { buildWhatsAppUrl } from '../lib/constants'
 import ProductCard from '../components/ProductCard'
 import WatermarkSection from '../components/WatermarkSection'
@@ -76,7 +64,9 @@ function BannerSlideshow({ banners }) {
 }
 
 export default function Home() {
-  const pixelHero = useSiteImage('pixelHero', '/images/pixel-hero.jpg')
+  const [siteImgs, setSiteImgs] = useState({})
+  useEffect(() => { getSiteImagesInstant(setSiteImgs) }, [])
+  const pixelHero = siteImgs.pixelHero || '/images/pixel-hero.jpg'
   const [featured, setFeatured] = useState([])
   const [reviews,  setReviews]  = useState([])
   const banners    = useBanners()
