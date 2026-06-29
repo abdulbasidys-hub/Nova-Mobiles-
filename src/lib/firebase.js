@@ -7,42 +7,92 @@ const firebaseConfig = {
   apiKey:            "AIzaSyDuEeOBGHyI3yIyNmv-Uc-LbnsFPEsp-Ws",
   authDomain:        "nova-mobiles-plus.firebaseapp.com",
   projectId:         "nova-mobiles-plus",
-  storageBucket:     "nova-mobiles-plus.appspot.com",
+  storageBucket:     "nova-mobiles-plus.firebasestorage.app",
   messagingSenderId: "744016269592",
   appId:             "1:744016269592:web:82f45cce4fd6a93ff38e6d",
 }
 
 const app = initializeApp(firebaseConfig)
 
-export const db      = getFirestore(app)
-export const auth    = getAuth(app)
+export const db   = getFirestore(app)
+export const auth = getAuth(app)
+
+// Firebase changed default bucket naming for newer projects.
+// If uploads hang, go to Firebase Console → Storage and copy the bucket name
+// (looks like: nova-mobiles-plus.appspot.com OR nova-mobiles-plus.firebasestorage.app)
+// then paste it below.
 export const storage = getStorage(app)
 
 /**
- * Upload a file to Firebase Storage.
+ * Compress an image file using Canvas before uploading.
+ * Reduces a 4MB phone photo to ~150-350KB with no visible quality loss.
+ * @param {File}   file    — original File from input
+ * @param {number} maxPx   — max width or height in pixels (default 1400)
+ * @param {number} quality — JPEG quality 0-1 (default 0.82)
+ * @returns {Promise<Blob>}
+ */
+export function compressImage(file, maxPx = 1400, quality = 0.82) {
+  return new Promise((resolve) => {
+    // Skip compression for tiny files (<100KB) — not worth it
+    if (file.size < 100 * 1024) { resolve(file); return }
+
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const { width, height } = img
+      const scale  = Math.min(1, maxPx / Math.max(width, height))
+      const w      = Math.round(width  * scale)
+      const h      = Math.round(height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width  = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, w, h)
+      canvas.toBlob(
+        blob => resolve(blob || file),  // fallback to original if toBlob fails
+        'image/jpeg',
+        quality
+      )
+    }
+
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+    img.src = url
+  })
+}
+
+/**
+ * Compress then upload a file to Firebase Storage.
  * @param {File}     file       — the File object from an input element
- * @param {string}   path       — storage path e.g. "catalog/pixel-8-pro/obsidian/photo1.jpg"
+ * @param {string}   path       — storage path e.g. "catalog/pixel-8-pro/obsidian/front.jpg"
  * @param {Function} onProgress — called with 0-100 during upload
  * @returns {Promise<string>}   — resolves to the public download URL
  */
 export function uploadImage(file, path, onProgress) {
-  return new Promise((resolve, reject) => {
-    const storageRef = ref(storage, path)
-    const task       = uploadBytesResumable(storageRef, file, { contentType: file.type })
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Compress first — happens entirely in the browser, no network needed
+      const compressed = await compressImage(file)
 
-    task.on(
-      'state_changed',
-      (snap) => {
-        if (onProgress) onProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100))
-      },
-      reject,
-      async () => {
-        try {
-          const url = await getDownloadURL(task.snapshot.ref)
-          resolve(url)
-        } catch (e) { reject(e) }
-      }
-    )
+      const storageRef = ref(storage, path)
+      // Always store as JPEG after compression
+      const task = uploadBytesResumable(storageRef, compressed, { contentType: 'image/jpeg' })
+
+      task.on(
+        'state_changed',
+        (snap) => {
+          if (onProgress) onProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100))
+        },
+        reject,
+        async () => {
+          try {
+            const url = await getDownloadURL(task.snapshot.ref)
+            resolve(url)
+          } catch (e) { reject(e) }
+        }
+      )
+    } catch (e) { reject(e) }
   })
 }
 

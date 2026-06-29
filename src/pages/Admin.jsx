@@ -15,7 +15,7 @@ const DOMAIN = '@novamobilesplus.com'
 const BRAND_COLORS = {
   'Huawei':       ['Space Black','Silver Frost','Breathing Crystal','Emerald Green','Nebula Red','Cocoa Gold','Pearl White','Dark Blue'],
   'Honor':        ['Titanium Silver','Midnight Black','Emerald Green','Purple','Cyan Lake','Gold','Magic Night Black','Ice Silver'],
-  'Motorolla':       ['Mineral Gray','Viva Magenta','Steel Blue','Blush Gold','Charcoal','Sky Blue','Sage Green','Midnight Blue'],
+  'Motorolla':    ['Mineral Gray','Viva Magenta','Steel Blue','Blush Gold','Charcoal','Sky Blue','Sage Green','Midnight Blue'],
   'Google Pixel': ['Obsidian','Porcelain','Bay','Hazel','Mint','Coral','Lemongrass','Sage','Charcoal','Pearl','Snow','Peony','Matcha','Wintergreen','Mocha'],
   'iPhone':       ['Black Titanium','White Titanium','Natural Titanium','Desert Titanium','Pink','Black','White','Blue','Green','Yellow','Purple','Red','Starlight','Midnight','Storm Blue','Ultramarine','Teal','Sand'],
   'Samsung':      ['Phantom Black','Phantom White','Titanium Black','Titanium Gray','Titanium Blue','Titanium Violet','Titanium Yellow','Cream','Lavender','Green','Navy','Lime','Graphite'],
@@ -93,7 +93,7 @@ const SectionHead = ({title, subtitle, action}) => (
 )
 
 /* ═══════════════════════════════════════════════
-   IMAGE UPLOADER COMPONENT
+   IMAGE UPLOADER — with timeout + clear errors
 ═══════════════════════════════════════════════ */
 function ImageUploader({ storagePath, onUploaded, label='Upload Photo', hint, compact }) {
   const [progress, setProgress] = useState(null)
@@ -103,21 +103,33 @@ function ImageUploader({ storagePath, onUploaded, label='Upload Photo', hint, co
   const handleFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) { setError('Please select an image file'); return }
-    if (file.size > 10 * 1024 * 1024)   { setError('Image must be under 10MB'); return }
+    if (!file.type.startsWith('image/')) { setError('Select an image file (JPG, PNG, WEBP)'); return }
+    if (file.size > 15 * 1024 * 1024)   { setError('Image must be under 15MB'); return }
+
     setError('')
     setProgress(0)
-    const ext  = file.name.split('.').pop().toLowerCase()
+    e.target.value = ''
+
+    const ext  = file.name.split('.').pop().toLowerCase() || 'jpg'
     const path = `${storagePath}/${Date.now()}.${ext}`
+
     try {
-      const url = await uploadImage(file, path, setProgress)
+      const url = await uploadImage(file, path, (pct) => {
+        setProgress(pct)
+      })
       onUploaded(url)
       setProgress(null)
-    } catch {
-      setError('Upload failed — check Firebase Storage rules')
+    } catch (err) {
+      const msg = err?.code || err?.message || ''
+      if (msg.includes('unauthorized') || msg.includes('permission')) {
+        setError('Permission denied — go to Firebase Console → Storage → Rules and publish the rules')
+      } else if (msg.includes('bucket') || msg.includes('not-found') || msg.includes('404')) {
+        setError('Storage bucket not found — check storageBucket in firebase.js matches Firebase Console → Storage')
+      } else {
+        setError('Upload failed — check Firebase Storage rules are published and your Firebase plan supports uploads')
+      }
       setProgress(null)
     }
-    e.target.value = ''
   }
 
   const btnStyle = {
@@ -136,9 +148,8 @@ function ImageUploader({ storagePath, onUploaded, label='Upload Photo', hint, co
 
   return (
     <div>
-      <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/svg+xml,image/*" onChange={handleFile}
-        style={{display:'none'}} />
-      <button type="button" onClick={() => inputRef.current?.click()} disabled={progress !== null} style={btnStyle}>
+      <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/*" onChange={handleFile} style={{display:'none'}}/>
+      <button type="button" onClick={() => { setError(''); inputRef.current?.click() }} disabled={progress !== null} style={btnStyle}>
         {progress !== null ? (
           <>
             <div style={{width:12,height:12,border:'2px solid #1967D2',borderTopColor:'transparent',borderRadius:'50%',animation:'spin .6s linear infinite',flexShrink:0}}/>
@@ -156,8 +167,8 @@ function ImageUploader({ storagePath, onUploaded, label='Upload Photo', hint, co
           <div style={{height:'100%',background:'#005BBF',width:`${progress}%`,transition:'width .2s',borderRadius:99}}/>
         </div>
       )}
-      {error && <p style={{fontSize:'.72rem',color:'#C5221F',marginTop:'.3rem',fontWeight:600}}>{error}</p>}
-      {hint  && <p style={{fontSize:'.72rem',color:'#727785',marginTop:'.3rem'}}>{hint}</p>}
+      {error && <p style={{fontSize:'.72rem',color:'#C5221F',marginTop:'.35rem',fontWeight:600,lineHeight:1.4}}>{error}</p>}
+      {hint && !error && <p style={{fontSize:'.72rem',color:'#727785',marginTop:'.3rem'}}>{hint}</p>}
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
@@ -375,17 +386,11 @@ function CatalogForm({initial, onSave, onCancel, saving}) {
         <div style={{display:'flex',flexDirection:'column',gap:'.45rem'}}>
           {(form.availableColors?.length ? form.availableColors : ['','']).map((color, idx) => (
             <div key={idx} style={{display:'flex',gap:'.4rem',alignItems:'center'}}>
-              <input
-                value={color}
-                onChange={e => setColor(idx, e.target.value)}
-                placeholder={`Colour ${idx+1} e.g. Midnight Black`}
-                style={{...I, flex:1}}
-              />
+              <input value={color} onChange={e => setColor(idx, e.target.value)}
+                placeholder={`Colour ${idx+1} e.g. Midnight Black`} style={{...I, flex:1}}/>
               {(form.availableColors||[]).length > 2 && (
                 <button type="button" onClick={() => removeColor(idx)}
-                  style={{background:'none',border:'none',cursor:'pointer',color:'#C5221F',fontSize:18,lineHeight:1,flexShrink:0,padding:'.2rem'}}>
-                  ✕
-                </button>
+                  style={{background:'none',border:'none',cursor:'pointer',color:'#C5221F',fontSize:18,lineHeight:1,flexShrink:0,padding:'.2rem'}}>✕</button>
               )}
             </div>
           ))}
@@ -406,15 +411,9 @@ function CatalogForm({initial, onSave, onCancel, saving}) {
 }
 
 function CatalogDetailModal({cat, onEdit, onDelete, onClose, deleting}) {
-  // Close on backdrop click
   return (
-    <div
-      onClick={onClose}
-      style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,.45)',display:'flex',alignItems:'center',justifyContent:'center',padding:'1rem'}}>
-      <div
-        onClick={e=>e.stopPropagation()}
-        style={{background:'#fff',borderRadius:16,width:'100%',maxWidth:480,maxHeight:'85vh',overflowY:'auto',boxShadow:'0 8px 40px rgba(0,0,0,.22)'}}>
-        {/* Modal header */}
+    <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,.45)',display:'flex',alignItems:'center',justifyContent:'center',padding:'1rem'}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:16,width:'100%',maxWidth:480,maxHeight:'85vh',overflowY:'auto',boxShadow:'0 8px 40px rgba(0,0,0,.22)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'1rem 1.25rem',borderBottom:'1px solid #E6E8EA',position:'sticky',top:0,background:'#fff',zIndex:1}}>
           <div>
             <p style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'1rem'}}>{cat.model}</p>
@@ -422,24 +421,13 @@ function CatalogDetailModal({cat, onEdit, onDelete, onClose, deleting}) {
           </div>
           <button onClick={onClose} style={{background:'#F2F4F6',border:'none',borderRadius:8,width:30,height:30,cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',color:'#414754'}}>✕</button>
         </div>
-        {/* Spec rows */}
         <div style={{padding:'1rem 1.25rem'}}>
-          {[
-            ['Display',    cat.display],
-            ['Rear Camera',cat.camera],
-            ['Front Camera',cat.frontCamera],
-            ['Battery',    cat.battery],
-            ['Charging',   cat.charging],
-            ['OS',         cat.os],
-            ['Dimensions', cat.dimensions],
-            ['Weight',     cat.weight],
-          ].filter(([,v])=>v).map(([label,val])=>(
+          {[['Display',cat.display],['Rear Camera',cat.camera],['Front Camera',cat.frontCamera],['Battery',cat.battery],['Charging',cat.charging],['OS',cat.os],['Dimensions',cat.dimensions],['Weight',cat.weight]].filter(([,v])=>v).map(([label,val])=>(
             <div key={label} style={{display:'flex',gap:'.75rem',marginBottom:'.65rem',fontSize:'.82rem'}}>
               <span style={{color:'#727785',fontWeight:700,flexShrink:0,minWidth:90,fontSize:'.72rem',paddingTop:'.05rem'}}>{label}</span>
               <span style={{color:'#191C1E',lineHeight:1.5,whiteSpace:'pre-line'}}>{val}</span>
             </div>
           ))}
-          {/* Colours */}
           {cat.availableColors?.filter(Boolean).length > 0 && (
             <div style={{marginTop:'.5rem'}}>
               <p style={{fontSize:'.65rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.45rem'}}>Available Colours</p>
@@ -451,7 +439,6 @@ function CatalogDetailModal({cat, onEdit, onDelete, onClose, deleting}) {
             </div>
           )}
         </div>
-        {/* Actions */}
         <div style={{display:'flex',gap:'.65rem',padding:'1rem 1.25rem',borderTop:'1px solid #E6E8EA',position:'sticky',bottom:0,background:'#fff'}}>
           <button onClick={()=>onEdit(cat)} style={{flex:1,background:'#005BBF',color:'#fff',border:'none',borderRadius:9,padding:'.6rem 0',fontFamily:'inherit',fontWeight:700,fontSize:'.85rem',cursor:'pointer'}}>Edit</button>
           <button onClick={()=>onDelete(cat)} disabled={deleting} style={{flex:1,background:'#FCE8E6',color:'#C5221F',border:'none',borderRadius:9,padding:'.6rem 0',fontFamily:'inherit',fontWeight:700,fontSize:'.85rem',cursor:'pointer',opacity:deleting?.6:1}}>{deleting?'Deleting…':'Delete'}</button>
@@ -467,7 +454,7 @@ function TabCatalog({catalog, setCatalog, showToast}) {
   const [saving,   setSaving]   = useState(false)
   const [deleting, setDeleting] = useState({})
   const [collapsed,setCollapsed]= useState({})
-  const [modal,    setModal]    = useState(null)  // cat object or null
+  const [modal,    setModal]    = useState(null)
 
   const save = async (data) => {
     setSaving(true)
@@ -515,19 +502,8 @@ function TabCatalog({catalog, setCatalog, showToast}) {
 
   return (
     <div>
-      {/* Modal */}
-      {modal && (
-        <CatalogDetailModal
-          cat={modal}
-          onClose={()=>setModal(null)}
-          onEdit={cat=>{setModal(null);setEditing(cat)}}
-          onDelete={del}
-          deleting={deleting[modal.id]}
-        />
-      )}
-
+      {modal && <CatalogDetailModal cat={modal} onClose={()=>setModal(null)} onEdit={cat=>{setModal(null);setEditing(cat)}} onDelete={del} deleting={deleting[modal.id]}/>}
       <SectionHead title="Product Catalog" subtitle="Tap any model to view details, edit, or delete." action={<Btn onClick={()=>setAdding(true)}>+ New Model</Btn>}/>
-
       {catalog.length===0&&(
         <div style={{textAlign:'center',padding:'4rem',background:'#F2F4F6',borderRadius:12,color:'#727785'}}>
           <div style={{fontSize:40,marginBottom:'1rem'}}>📋</div>
@@ -535,33 +511,25 @@ function TabCatalog({catalog, setCatalog, showToast}) {
           <Btn onClick={()=>setAdding(true)}>+ Add First Model</Btn>
         </div>
       )}
-
       {Object.entries(grouped).map(([brand,list])=>(
         <div key={brand} style={{marginBottom:'1.25rem',border:'1px solid #C1C6D6',borderRadius:12,overflow:'hidden'}}>
-          <button
-            onClick={()=>setCollapsed(prev=>({...prev,[brand]:!prev[brand]}))}
+          <button onClick={()=>setCollapsed(prev=>({...prev,[brand]:!prev[brand]}))}
             style={{width:'100%',display:'flex',alignItems:'center',gap:'.65rem',padding:'.75rem 1rem',background:collapsed[brand]?'#F2F4F6':'#E8F0FE',border:'none',cursor:'pointer',textAlign:'left'}}>
             <span style={{fontSize:18}}>{BRAND_ICONS[brand]||'📱'}</span>
             <span style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'.95rem',flex:1}}>{brand}</span>
             <span style={{fontSize:'.72rem',color:'#727785',fontWeight:600}}>{list.length} model{list.length!==1?'s':''}</span>
             <span style={{fontSize:12,color:'#727785',marginLeft:'.25rem'}}>{collapsed[brand]?'▼':'▲'}</span>
           </button>
-
           {!collapsed[brand]&&(
             <div style={{padding:'.75rem',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:'.6rem',background:'#fff',borderTop:'1px solid #E6E8EA'}}>
               {list.map(cat=>(
-                <div key={cat.id}
-                  onClick={()=>setModal(cat)}
+                <div key={cat.id} onClick={()=>setModal(cat)}
                   style={{border:'1px solid #C1C6D6',borderRadius:10,padding:'.65rem .75rem',cursor:'pointer',opacity:deleting[cat.id]?.4:1,transition:'all .15s',background:'#fff',userSelect:'none'}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor='#005BBF';e.currentTarget.style.background='#F7FAFF'}}
                   onMouseLeave={e=>{e.currentTarget.style.borderColor='#C1C6D6';e.currentTarget.style.background='#fff'}}>
                   <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.82rem',lineHeight:1.2,marginBottom:'.2rem'}}>{cat.model}</p>
-                  {cat.availableColors?.length>0&&(
-                    <p style={{fontSize:'.65rem',color:'#727785'}}>{cat.availableColors.length} colour{cat.availableColors.length!==1?'s':''}</p>
-                  )}
-                  {cat.display&&(
-                    <p style={{fontSize:'.63rem',color:'#414754',marginTop:'.25rem',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cat.display}</p>
-                  )}
+                  {cat.availableColors?.length>0&&<p style={{fontSize:'.65rem',color:'#727785'}}>{cat.availableColors.length} colour{cat.availableColors.length!==1?'s':''}</p>}
+                  {cat.display&&<p style={{fontSize:'.63rem',color:'#414754',marginTop:'.25rem',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cat.display}</p>}
                 </div>
               ))}
             </div>
@@ -594,12 +562,8 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
     if (cp) set('color', (BRAND_COLORS[cp.brand]||DEFAULT_COLORS)[0])
   }
 
-  const handlePhotoUploaded = (url) => {
-    set('images', [...(form.images||[]), url])
-  }
-  const removePhoto = (idx) => {
-    set('images', form.images.filter((_,i)=>i!==idx))
-  }
+  const handlePhotoUploaded = (url) => set('images', [...(form.images||[]), url])
+  const removePhoto = (idx) => set('images', form.images.filter((_,i)=>i!==idx))
 
   const submit = () => {
     if (!form.catalogId) {setErr('Select a phone model'); return}
@@ -608,11 +572,7 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
     setErr('')
     const cp   = catalog.find(c => c.id === form.catalogId)
     const slug = form.slug || (cp ? cp.slug+'-'+form.storage+'-'+form.color : '').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')
-    const specs = {
-      display:cp?.display, processor:cp?.processor, camera:cp?.camera,
-      frontCamera:cp?.frontCamera, battery:cp?.battery, charging:cp?.charging,
-      os:cp?.os, connectivity:cp?.connectivity, protection:cp?.protection,
-    }
+    const specs = { display:cp?.display, processor:cp?.processor, camera:cp?.camera, frontCamera:cp?.frontCamera, battery:cp?.battery, charging:cp?.charging, os:cp?.os, connectivity:cp?.connectivity, protection:cp?.protection }
     const featuredUntil = Date.now() + 7 * 24 * 60 * 60 * 1000
     onSave({ catalogId:form.catalogId, brand:cp?.brand||'', model:cp?.model||'', name:cp?.model||'', color:form.color, storage:form.storage, condition:form.condition, price:Number(form.price), available:true, featured:true, featuredUntil, images:form.images||[], slug, specs })
   }
@@ -663,9 +623,7 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
 
       <div style={{background:'#F2F4F6',borderRadius:12,padding:'1.25rem',marginBottom:'1.25rem',border:'1px solid #C1C6D6'}}>
         <p style={{fontSize:'.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.35rem'}}>Step 3 — Live In-Store Photos</p>
-        <p style={{fontSize:'.75rem',color:'#727785',marginBottom:'.85rem'}}>
-          Photos of <strong>this specific unit</strong> — the ones customers see first when they open the phone.
-        </p>
+        <p style={{fontSize:'.75rem',color:'#727785',marginBottom:'.85rem'}}>Photos of <strong>this specific unit</strong> — the ones customers see first when they open the phone.</p>
         {(form.images||[]).length > 0 && (
           <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',marginBottom:'.85rem'}}>
             {form.images.map((url,i)=>(
@@ -673,12 +631,9 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
             ))}
           </div>
         )}
-        <ImageUploader
-          storagePath={variantStoragePath}
-          onUploaded={handlePhotoUploaded}
+        <ImageUploader storagePath={variantStoragePath} onUploaded={handlePhotoUploaded}
           label={form.images?.length ? 'Add Another Photo' : 'Upload Photo (from camera or gallery)'}
-          hint="First photo uploaded becomes the main display image."
-        />
+          hint="First photo uploaded becomes the main display image."/>
       </div>
 
       <div style={{display:'flex',gap:'.55rem'}}>
@@ -690,10 +645,7 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
 }
 
 /* ═══════════════════════════════════════════════
-   TAB 4 — MANAGE COLOUR IMAGES
-   - Only shows colours defined in the catalog entry
-   - Each colour has Front / Back / Side tabs
-   - colorImages shape: { [color]: { front: url|'', back: url|'', side: url|'' } }
+   TAB 4 — PHONE IMAGES
 ═══════════════════════════════════════════════ */
 function TabImages({catalog, phones, showToast}) {
   const [selBrand,    setSelBrand]    = useState('')
@@ -709,11 +661,7 @@ function TabImages({catalog, phones, showToast}) {
   const selectedCatalog = catalog.find(c => c.id === selId)
   const catalogColors   = selectedCatalog?.availableColors?.filter(Boolean) || []
 
-  const handleBrandSelect = (brand) => {
-    setSelBrand(brand)
-    setSelId('')
-    setColorImages({})
-  }
+  const handleBrandSelect = (brand) => { setSelBrand(brand); setSelId(''); setColorImages({}) }
 
   const handleSelect = (id) => {
     setSelId(id)
@@ -733,12 +681,8 @@ function TabImages({catalog, phones, showToast}) {
   }
 
   const setSlot = (color, slot, url) => {
-    setColorImages(prev => ({
-      ...prev,
-      [color]: { ...(prev[color] || {front:'',back:'',side:''}), [slot]: url }
-    }))
+    setColorImages(prev => ({ ...prev, [color]: { ...(prev[color] || {front:'',back:'',side:''}), [slot]: url } }))
   }
-
   const clearSlot = (color, slot) => setSlot(color, slot, '')
 
   const saveAll = async () => {
@@ -751,20 +695,13 @@ function TabImages({catalog, phones, showToast}) {
     finally { setSaving(false) }
   }
 
-  const totalSlots = Object.values(colorImages).reduce((sum, v) => {
-    return sum + (v.front?1:0) + (v.back?1:0) + (v.side?1:0)
-  }, 0)
-
+  const totalSlots = Object.values(colorImages).reduce((sum, v) => sum + (v.front?1:0) + (v.back?1:0) + (v.side?1:0), 0)
   const SLOTS = ['front', 'back', 'side']
 
   return (
     <div>
-      <SectionHead
-        title="Phone Images"
-        subtitle="Upload Front, Back, and Side photos per colour."
-      />
+      <SectionHead title="Phone Images" subtitle="Upload Front, Back, and Side photos per colour."/>
 
-      {/* Step 1 — Brand tabs */}
       <div style={{marginBottom:'1rem'}}>
         <p style={{fontSize:'.65rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.55rem'}}>Step 1 — Brand</p>
         <div style={{display:'flex',gap:'.35rem',flexWrap:'wrap'}}>
@@ -777,7 +714,6 @@ function TabImages({catalog, phones, showToast}) {
         </div>
       </div>
 
-      {/* Step 2 — Model (only when brand selected) */}
       {selBrand && (
         <div style={{marginBottom:'1.5rem'}}>
           <p style={{fontSize:'.65rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.55rem'}}>Step 2 — Model</p>
@@ -792,24 +728,9 @@ function TabImages({catalog, phones, showToast}) {
         </div>
       )}
 
-      {!selBrand && (
-        <div style={{textAlign:'center',padding:'3rem',color:'#727785',background:'#F2F4F6',borderRadius:12}}>
-          <div style={{fontSize:36,marginBottom:'1rem'}}>🎨</div>
-          <p style={{fontWeight:600}}>Select a brand above to get started</p>
-        </div>
-      )}
-
-      {selBrand && !selId && (
-        <div style={{textAlign:'center',padding:'2.5rem',color:'#727785',background:'#F2F4F6',borderRadius:12}}>
-          <p style={{fontWeight:600}}>Now select a model</p>
-        </div>
-      )}
-
-      {selId && catalogColors.length === 0 && (
-        <div style={{padding:'1.25rem',background:'#FEF7E0',border:'1.5px solid #FFB95F',borderRadius:10,fontSize:'.82rem',color:'#653E00'}}>
-          ⚠️ No colours defined for this model. Go to <strong>Catalog</strong>, edit this model, and add colours first.
-        </div>
-      )}
+      {!selBrand && <div style={{textAlign:'center',padding:'3rem',color:'#727785',background:'#F2F4F6',borderRadius:12}}><div style={{fontSize:36,marginBottom:'1rem'}}>🎨</div><p style={{fontWeight:600}}>Select a brand above to get started</p></div>}
+      {selBrand && !selId && <div style={{textAlign:'center',padding:'2.5rem',color:'#727785',background:'#F2F4F6',borderRadius:12}}><p style={{fontWeight:600}}>Now select a model</p></div>}
+      {selId && catalogColors.length === 0 && <div style={{padding:'1.25rem',background:'#FEF7E0',border:'1.5px solid #FFB95F',borderRadius:10,fontSize:'.82rem',color:'#653E00'}}>⚠️ No colours defined. Edit this model in <strong>Catalog</strong> and add colours first.</div>}
 
       {selId && catalogColors.length > 0 && (
         <>
@@ -821,31 +742,25 @@ function TabImages({catalog, phones, showToast}) {
 
             return (
               <div key={color} style={{marginBottom:'1rem',border:'1px solid #C1C6D6',borderRadius:12,overflow:'hidden'}}>
-                {/* Colour header */}
                 <div style={{display:'flex',alignItems:'center',gap:'.75rem',padding:'.6rem 1rem',background:filled===3?'#E6F4EA':'#F2F4F6',borderBottom:'1px solid #E6E8EA'}}>
                   <div style={{width:16,height:16,borderRadius:'50%',background:hex,flexShrink:0,border:light?'1.5px solid #C1C6D6':'none',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
                   <span style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.88rem',flex:1}}>{color}</span>
                   <span style={{fontSize:'.68rem',color:filled===3?'#137333':'#727785',fontWeight:600}}>{filled}/3</span>
                 </div>
-
-                {/* Three upload slots in one row */}
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:0,background:'#fff'}}>
                   {SLOTS.map((slot, si) => {
                     const hasImg = !!imgs[slot]
                     return (
                       <div key={slot} style={{padding:'.6rem .7rem',borderRight:si<2?'1px solid #E6E8EA':'none'}}>
-                        {/* Slot heading */}
                         <p style={{fontSize:'.62rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:hasImg?'#137333':'#414754',marginBottom:'.35rem',textAlign:'center'}}>
                           {hasImg ? '✓ ' : ''}{slot}
                         </p>
-                        {/* Thumbnail — small fixed height */}
                         <div style={{width:'100%',height:64,background:'#F2F4F6',borderRadius:6,overflow:'hidden',border:`1px solid ${hasImg?'#C4E8CE':'#E6E8EA'}`,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'.4rem'}}>
                           {hasImg
                             ? <img src={imgs[slot]} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}} onError={e=>{e.target.style.display='none'}}/>
                             : <span style={{fontSize:18,opacity:.15}}>📱</span>
                           }
                         </div>
-                        {/* Upload button */}
                         <ImageUploader
                           storagePath={`catalog/${selId}/${color.toLowerCase().replace(/\s+/g,'-')}/${slot}`}
                           onUploaded={url => setSlot(color, slot, url)}
@@ -865,8 +780,6 @@ function TabImages({catalog, phones, showToast}) {
               </div>
             )
           })}
-
-          {/* Sticky save bar */}
           <div style={{position:'sticky',bottom:24,background:'#fff',padding:'.85rem 1rem',borderRadius:12,boxShadow:'0 4px 20px rgba(0,0,0,.12)',border:'1px solid #C1C6D6',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'1rem',flexWrap:'wrap',marginTop:'1rem'}}>
             <p style={{fontSize:'.8rem',color:'#414754'}}>{totalSlots} photo{totalSlots!==1?'s':''} across {catalogColors.length} colour{catalogColors.length!==1?'s':''}</p>
             <Btn onClick={saveAll} disabled={saving}>{saving?'⏳ Saving…':'✓ Save All'}</Btn>
@@ -961,9 +874,9 @@ async function removeSiteImage(key) {
    TAB — SITE IMAGES
 ═══════════════════════════════════════════════ */
 const SITE_IMAGE_SLOTS = [
-  { key:'ownerPhoto', label:"Owner's Photo",    desc:'Shown on the About page beside the founder biography.', fallback:'/images/owner.jpg', hint:'Portrait orientation works best. Face should be clear and well-lit.', aspect:'4/3' },
-  { key:'shopPhoto',  label:'Shop Photo',        desc:'Shown on the About page in the Shop section.',          fallback:'/images/shop.jpg',  hint:'Landscape photo of the shop front or interior.',                   aspect:'4/3' },
-  { key:'pixelHero', label:'Pixel Hero Image',  desc:'Dark background section on the homepage — "Why Choose Pixel?"', fallback:'/images/pixel-hero.jpg', hint:'Dark or moody photo of a Pixel phone. Landscape orientation.', aspect:'4/3' },
+  { key:'ownerPhoto', label:"Owner's Photo",   desc:'Shown on the About page beside the founder biography.', fallback:'/images/owner.jpg',     hint:'Portrait orientation works best.',                     aspect:'4/3' },
+  { key:'shopPhoto',  label:'Shop Photo',       desc:'Shown on the About page in the Shop section.',          fallback:'/images/shop.jpg',      hint:'Landscape photo of the shop front or interior.',       aspect:'4/3' },
+  { key:'pixelHero',  label:'Pixel Hero Image', desc:'Dark background section on the homepage.',              fallback:'/images/pixel-hero.jpg', hint:'Dark or moody photo of a Pixel phone. Landscape.',    aspect:'4/3' },
 ]
 
 function TabSiteImages({ showToast }) {
@@ -971,37 +884,24 @@ function TabSiteImages({ showToast }) {
   const [saving,  setSaving]  = useState({})
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    getSiteImages().then(imgs => { setImages(imgs); setLoading(false) })
-  }, [])
+  useEffect(() => { getSiteImages().then(imgs => { setImages(imgs); setLoading(false) }) }, [])
 
   const handleUploaded = async (key, url) => {
     setSaving(s => ({...s, [key]: true}))
-    try {
-      await setSiteImage(key, url)
-      setImages(prev => ({...prev, [key]: url}))
-      showToast('Image updated — live on site immediately')
-    } catch { showToast('Save failed — check Firestore rules', 'error') }
+    try { await setSiteImage(key, url); setImages(prev => ({...prev, [key]: url})); showToast('Image updated — live on site immediately') }
+    catch { showToast('Save failed — check Firestore rules', 'error') }
     finally { setSaving(s => ({...s, [key]: false})) }
   }
 
   const handleRemove = async (key) => {
     if (!confirm('Remove this image? The site will fall back to the default.')) return
     setSaving(s => ({...s, [key]: true}))
-    try {
-      await removeSiteImage(key)
-      setImages(prev => {const n={...prev}; delete n[key]; return n})
-      showToast('Image removed — site is now using the default')
-    } catch { showToast('Remove failed', 'error') }
+    try { await removeSiteImage(key); setImages(prev => {const n={...prev}; delete n[key]; return n}); showToast('Reverted to default') }
+    catch { showToast('Remove failed', 'error') }
     finally { setSaving(s => ({...s, [key]: false})) }
   }
 
-  if (loading) return (
-    <div style={{display:'flex',alignItems:'center',gap:'.5rem',color:'#727785',fontSize:'.82rem',padding:'2rem 0'}}>
-      <div style={{width:16,height:16,border:'2px solid #005BBF',borderTopColor:'transparent',borderRadius:'50%',animation:'spin .6s linear infinite'}}/>
-      Loading current images…
-    </div>
-  )
+  if (loading) return <div style={{display:'flex',alignItems:'center',gap:'.5rem',color:'#727785',fontSize:'.82rem',padding:'2rem 0'}}><div style={{width:16,height:16,border:'2px solid #005BBF',borderTopColor:'transparent',borderRadius:'50%',animation:'spin .6s linear infinite'}}/>Loading…</div>
 
   return (
     <div>
@@ -1013,22 +913,14 @@ function TabSiteImages({ showToast }) {
           return (
             <div key={slot.key} style={{border:'1px solid #C1C6D6',borderRadius:14,overflow:'hidden',background:'#fff'}}>
               <div style={{aspectRatio:slot.aspect,background:'#F2F4F6',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
-                <img src={currentUrl} alt={slot.label} style={{width:'100%',height:'100%',objectFit:'cover'}}
-                  onError={e=>{e.target.style.display='none'; e.target.parentNode.innerHTML='<span style="font-size:36px;opacity:.2">🖼</span>'}}/>
-                <span style={{position:'absolute',top:8,right:8,background:hasCustom?'#E6F4EA':'#F2F4F6',color:hasCustom?'#137333':'#727785',fontSize:'.65rem',fontWeight:700,padding:'.18rem .55rem',borderRadius:999}}>
-                  {hasCustom ? 'Custom ✓' : 'Default'}
-                </span>
+                <img src={currentUrl} alt={slot.label} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none'}}/>
+                <span style={{position:'absolute',top:8,right:8,background:hasCustom?'#E6F4EA':'#F2F4F6',color:hasCustom?'#137333':'#727785',fontSize:'.65rem',fontWeight:700,padding:'.18rem .55rem',borderRadius:999}}>{hasCustom?'Custom ✓':'Default'}</span>
               </div>
               <div style={{padding:'1rem'}}>
                 <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.9rem',marginBottom:'.2rem'}}>{slot.label}</p>
                 <p style={{fontSize:'.75rem',color:'#727785',marginBottom:'.85rem',lineHeight:1.5}}>{slot.desc}</p>
-                <ImageUploader storagePath={`site/${slot.key}`} onUploaded={url => handleUploaded(slot.key, url)} label={hasCustom ? 'Replace Image' : 'Upload Image'} hint={slot.hint}/>
-                {hasCustom && (
-                  <button onClick={() => handleRemove(slot.key)} disabled={saving[slot.key]}
-                    style={{marginTop:'.55rem',background:'none',border:'none',color:'#C5221F',cursor:'pointer',fontSize:'.75rem',fontWeight:600,padding:0,fontFamily:'inherit'}}>
-                    ✕ Remove custom image (revert to default)
-                  </button>
-                )}
+                <ImageUploader storagePath={`site/${slot.key}`} onUploaded={url => handleUploaded(slot.key, url)} label={hasCustom?'Replace Image':'Upload Image'} hint={slot.hint}/>
+                {hasCustom && <button onClick={() => handleRemove(slot.key)} disabled={saving[slot.key]} style={{marginTop:'.55rem',background:'none',border:'none',color:'#C5221F',cursor:'pointer',fontSize:'.75rem',fontWeight:600,padding:0,fontFamily:'inherit'}}>✕ Remove custom (revert to default)</button>}
               </div>
             </div>
           )
@@ -1052,25 +944,18 @@ function TabBanners({ showToast }) {
     catch { showToast('Could not load banners', 'error') }
     finally { setLoading(false) }
   }
-
   useEffect(() => { load() }, [])
 
   const handleUploaded = async (url) => {
-    try {
-      const ref = await addBanner(url)
-      setBanners(prev => [...prev, { id: ref.id, url }])
-      showToast('Banner added')
-    } catch { showToast('Failed to save banner', 'error') }
+    try { const ref = await addBanner(url); setBanners(prev => [...prev, { id: ref.id, url }]); showToast('Banner added') }
+    catch { showToast('Failed to save banner', 'error') }
   }
 
   const handleDelete = async (banner) => {
     if (!confirm('Remove this banner?')) return
     setDeleting(d => ({ ...d, [banner.id]: true }))
-    try {
-      await deleteBanner(banner.id)
-      setBanners(prev => prev.filter(b => b.id !== banner.id))
-      showToast('Banner removed')
-    } catch { showToast('Delete failed', 'error') }
+    try { await deleteBanner(banner.id); setBanners(prev => prev.filter(b => b.id !== banner.id)); showToast('Banner removed') }
+    catch { showToast('Delete failed', 'error') }
     finally { setDeleting(d => { const n={...d}; delete n[banner.id]; return n }) }
   }
 
@@ -1080,35 +965,20 @@ function TabBanners({ showToast }) {
       <div style={{ maxWidth: 360, marginBottom: '2rem' }}>
         <ImageUploader storagePath="banners" onUploaded={handleUploaded} label="Upload New Banner" hint="Recommended size: 1000 × 900px."/>
       </div>
-      {loading && (
-        <div style={{ display:'flex', alignItems:'center', gap:'.5rem', color:'#727785', fontSize:'.82rem' }}>
-          <div style={{ width:16, height:16, border:'2px solid #005BBF', borderTopColor:'transparent', borderRadius:'50%', animation:'spin .6s linear infinite' }}/>
-          Loading banners…
-        </div>
-      )}
-      {!loading && banners.length === 0 && (
-        <div style={{ textAlign:'center', padding:'3rem', color:'#727785', background:'#F2F4F6', borderRadius:12 }}>
-          <div style={{ fontSize:40, marginBottom:'1rem' }}>🖼</div>
-          <p style={{ fontWeight:600, marginBottom:'.35rem' }}>No banners yet</p>
-          <p style={{ fontSize:'.82rem' }}>Upload your first banner above</p>
-        </div>
-      )}
+      {loading && <div style={{display:'flex',alignItems:'center',gap:'.5rem',color:'#727785',fontSize:'.82rem'}}><div style={{width:16,height:16,border:'2px solid #005BBF',borderTopColor:'transparent',borderRadius:'50%',animation:'spin .6s linear infinite'}}/>Loading banners…</div>}
+      {!loading && banners.length === 0 && <div style={{textAlign:'center',padding:'3rem',color:'#727785',background:'#F2F4F6',borderRadius:12}}><div style={{fontSize:40,marginBottom:'1rem'}}>🖼</div><p style={{fontWeight:600,marginBottom:'.35rem'}}>No banners yet</p><p style={{fontSize:'.82rem'}}>Upload your first banner above</p></div>}
       {banners.length > 0 && (
         <div>
-          <p style={{ fontSize:'.72rem', color:'#727785', marginBottom:'1rem' }}>{banners.length} banner{banners.length!==1?'s':''}</p>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:'1rem' }}>
+          <p style={{fontSize:'.72rem',color:'#727785',marginBottom:'1rem'}}>{banners.length} banner{banners.length!==1?'s':''}</p>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:'1rem'}}>
             {banners.map((b, i) => (
-              <div key={b.id} style={{ border:'1px solid #C1C6D6', borderRadius:12, overflow:'hidden', background:'#fff', opacity:deleting[b.id]?.5:1, transition:'opacity .2s' }}>
-                <div style={{ aspectRatio:'10/9', background:'#F2F4F6', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <img src={b.url} alt={`Banner ${i+1}`} style={{ width:'100%', height:'100%', objectFit:'cover' }}
-                    onError={e => { e.target.style.display='none'; e.target.parentNode.style.background='#FCE8E6' }}/>
+              <div key={b.id} style={{border:'1px solid #C1C6D6',borderRadius:12,overflow:'hidden',background:'#fff',opacity:deleting[b.id]?.5:1,transition:'opacity .2s'}}>
+                <div style={{aspectRatio:'10/9',background:'#F2F4F6',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <img src={b.url} alt={`Banner ${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none'}}/>
                 </div>
-                <div style={{ padding:'.65rem .85rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                  <span style={{ fontSize:'.78rem', color:'#727785', fontWeight:600 }}>Banner {i+1}</span>
-                  <button onClick={() => handleDelete(b)} disabled={deleting[b.id]}
-                    style={{ background:'#FCE8E6', color:'#C5221F', border:'none', borderRadius:7, padding:'.28rem .7rem', fontFamily:'inherit', fontWeight:700, fontSize:'.75rem', cursor:'pointer' }}>
-                    {deleting[b.id] ? '…' : 'Remove'}
-                  </button>
+                <div style={{padding:'.65rem .85rem',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                  <span style={{fontSize:'.78rem',color:'#727785',fontWeight:600}}>Banner {i+1}</span>
+                  <button onClick={() => handleDelete(b)} disabled={deleting[b.id]} style={{background:'#FCE8E6',color:'#C5221F',border:'none',borderRadius:7,padding:'.28rem .7rem',fontFamily:'inherit',fontWeight:700,fontSize:'.75rem',cursor:'pointer'}}>{deleting[b.id]?'…':'Remove'}</button>
                 </div>
               </div>
             ))}
@@ -1175,11 +1045,8 @@ function TabAccessories({catalog, showToast}) {
   const handleEdit   = (acc) => { setEditing(acc); setForm({name:acc.name,price:acc.price,images:acc.images||[]}) }
   const handleDelete = async (acc) => {
     if (!confirm(`Delete "${acc.name}"?`)) return
-    try {
-      await deleteAccessory(acc.id)
-      setAccessories(prev => prev.filter(a => a.id!==acc.id))
-      showToast('Deleted')
-    } catch { showToast('Delete failed','error') }
+    try { await deleteAccessory(acc.id); setAccessories(prev => prev.filter(a => a.id!==acc.id)); showToast('Deleted') }
+    catch { showToast('Delete failed','error') }
   }
 
   return (
@@ -1196,49 +1063,31 @@ function TabAccessories({catalog, showToast}) {
           })}
         </select>
       </div>
-
       {selId && (
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'2rem',alignItems:'start'}} className="acc-g">
           <div style={{background:'#F2F4F6',borderRadius:12,padding:'1.25rem',border:'1px solid #C1C6D6'}}>
             <p style={{fontSize:'.72rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.85rem'}}>{editing?'Edit Accessory':'Add Accessory'}</p>
             <div style={{display:'flex',flexDirection:'column',gap:'.65rem',marginBottom:'.85rem'}}>
-              <Field label="Accessory Name *">
-                <input value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. Clear Case, USB-C Charger, Screen Protector" style={I}/>
-              </Field>
-              <Field label="Price (₦) *">
-                <input type="number" value={form.price} onChange={e=>set('price',e.target.value)} placeholder="e.g. 5000" style={I}/>
-              </Field>
+              <Field label="Accessory Name *"><input value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. Clear Case, USB-C Charger" style={I}/></Field>
+              <Field label="Price (₦) *"><input type="number" value={form.price} onChange={e=>set('price',e.target.value)} placeholder="e.g. 5000" style={I}/></Field>
             </div>
             <Lbl>Photos (up to 3)</Lbl>
             <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',marginBottom:'.65rem'}}>
-              {(form.images||[]).map((url,i)=>(
-                <ImageThumb key={i} url={url} onRemove={()=>removePhoto(i)}/>
-              ))}
+              {(form.images||[]).map((url,i)=><ImageThumb key={i} url={url} onRemove={()=>removePhoto(i)}/>)}
             </div>
-            {(form.images||[]).length < 3 && (
-              <ImageUploader storagePath={`accessories/${selId}`} onUploaded={handlePhotoUploaded} label="Upload Photo" hint=""/>
-            )}
+            {(form.images||[]).length < 3 && <ImageUploader storagePath={`accessories/${selId}`} onUploaded={handlePhotoUploaded} label="Upload Photo" hint=""/>}
             <div style={{display:'flex',gap:'.5rem',marginTop:'1rem'}}>
               <Btn onClick={handleSave} disabled={saving}>{saving?'⏳ Saving…':editing?'✓ Update':'+ Add'}</Btn>
               {editing && <Btn onClick={()=>{setEditing(null);setForm({name:'',price:'',images:[]})}} variant="ghost">Cancel</Btn>}
             </div>
           </div>
-
           <div>
-            <p style={{fontSize:'.72rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.85rem'}}>
-              {accessories.length} Accessor{accessories.length!==1?'ies':'y'} for {selectedCatalog?.model}
-            </p>
+            <p style={{fontSize:'.72rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.85rem'}}>{accessories.length} Accessor{accessories.length!==1?'ies':'y'} for {selectedCatalog?.model}</p>
             {loading && <p style={{color:'#727785',fontSize:'.82rem'}}>Loading…</p>}
-            {!loading && accessories.length===0 && (
-              <div style={{padding:'2rem',textAlign:'center',color:'#727785',background:'#F2F4F6',borderRadius:10,fontSize:'.82rem'}}>No accessories yet. Add one on the left.</div>
-            )}
+            {!loading && accessories.length===0 && <div style={{padding:'2rem',textAlign:'center',color:'#727785',background:'#F2F4F6',borderRadius:10,fontSize:'.82rem'}}>No accessories yet.</div>}
             {accessories.map(acc => (
               <div key={acc.id} style={{display:'flex',gap:'.75rem',alignItems:'center',padding:'.65rem .85rem',background:'#fff',border:'1px solid #C1C6D6',borderRadius:10,marginBottom:'.4rem',flexWrap:'wrap'}}>
-                {acc.images?.[0] && (
-                  <div style={{width:44,height:44,background:'#F2F4F6',borderRadius:8,overflow:'hidden',flexShrink:0}}>
-                    <img src={acc.images[0]} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}}/>
-                  </div>
-                )}
+                {acc.images?.[0] && <div style={{width:44,height:44,background:'#F2F4F6',borderRadius:8,overflow:'hidden',flexShrink:0}}><img src={acc.images[0]} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}}/></div>}
                 <div style={{flex:1,minWidth:80}}>
                   <p style={{fontWeight:700,fontSize:'.875rem'}}>{acc.name}</p>
                   <p style={{fontSize:'.72rem',color:'#414754'}}>{formatPrice(acc.price)}</p>
@@ -1252,13 +1101,7 @@ function TabAccessories({catalog, showToast}) {
           </div>
         </div>
       )}
-
-      {!selId && (
-        <div style={{textAlign:'center',padding:'3rem',color:'#727785',background:'#F2F4F6',borderRadius:12}}>
-          <div style={{fontSize:36,marginBottom:'1rem'}}>🎧</div>
-          <p style={{fontWeight:600}}>Select a phone model to manage its accessories</p>
-        </div>
-      )}
+      {!selId && <div style={{textAlign:'center',padding:'3rem',color:'#727785',background:'#F2F4F6',borderRadius:12}}><div style={{fontSize:36,marginBottom:'1rem'}}>🎧</div><p style={{fontWeight:600}}>Select a phone model to manage its accessories</p></div>}
       <style>{`@media(max-width:700px){.acc-g{grid-template-columns:1fr!important}}`}</style>
     </div>
   )
