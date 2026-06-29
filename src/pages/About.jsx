@@ -1,6 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { db } from '../lib/firebase'
+import { doc, getDoc } from 'firebase/firestore'
 import { buildWhatsAppUrl, SITE } from '../lib/constants'
 import WatermarkSection from '../components/WatermarkSection'
+
+function useSiteImage(key, fallback) {
+  const [url, setUrl] = useState(fallback)
+  useEffect(() => {
+    getDoc(doc(db, 'settings', 'siteImages'))
+      .then(snap => { if (snap.exists() && snap.data()[key]) setUrl(snap.data()[key]) })
+      .catch(() => {})
+  }, [key])
+  return url
+}
 
 function SiteImage({ src, alt, fallbackIcon, fallbackLabel }) {
   const [errored, setErrored] = useState(false)
@@ -19,6 +31,9 @@ function SiteImage({ src, alt, fallbackIcon, fallbackLabel }) {
 }
 
 export default function About() {
+  const ownerSrc = useSiteImage('ownerPhoto', '/images/owner.jpg')
+  const shopSrc  = useSiteImage('shopPhoto',  '/images/shop.jpg')
+
   return (
     <div className="pt">
 
@@ -55,7 +70,7 @@ export default function About() {
 
             {/* Owner photo */}
             <div style={{ width:'100%', aspectRatio:'4/3', border:'1px solid var(--outline-var)', borderRadius:8, overflow:'hidden' }}>
-              <SiteImage src='/images/owner.jpg' alt="Auwal Adam Muhammad" fallbackIcon="👤" fallbackLabel="owner photo" />
+              <SiteImage src={ownerSrc} alt="Auwal Adam Muhammad" fallbackIcon="👤" fallbackLabel="owner photo" />
             </div>
 
             {/* Biography */}
@@ -114,7 +129,7 @@ export default function About() {
             {/* Shop photo */}
             <div>
               <div style={{ width:'100%', aspectRatio:'4/3', border:'1px solid var(--outline-var)', borderRadius:8, overflow:'hidden' }}>
-                <SiteImage src='/images/shop.jpg' alt="Nova Mobiles Plus shop" fallbackIcon="🏪" fallbackLabel="shop photo" />
+                <SiteImage src={shopSrc} alt="Nova Mobiles Plus shop" fallbackIcon="🏪" fallbackLabel="shop photo" />
               </div>
               <p style={{ fontSize:'.72rem', color:'var(--on-surface-var)', textAlign:'center', marginTop:'.6rem' }}>No. 6 Lukoro B Farm Center, Kano</p>
             </div>

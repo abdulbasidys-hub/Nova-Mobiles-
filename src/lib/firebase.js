@@ -33,8 +33,11 @@ export const storage = getStorage(app)
  */
 export function compressImage(file, maxPx = 1400, quality = 0.82) {
   return new Promise((resolve) => {
-    // Skip compression for tiny files (<100KB) — not worth it
-    if (file.size < 100 * 1024) { resolve(file); return }
+    // GIF — skip compression entirely (canvas can't preserve animation)
+    if (file.type === 'image/gif') { resolve(file); return }
+
+    // Very small files — not worth compressing
+    if (file.size < 80 * 1024) { resolve(file); return }
 
     const img = new Image()
     const url = URL.createObjectURL(file)
@@ -49,11 +52,23 @@ export function compressImage(file, maxPx = 1400, quality = 0.82) {
       canvas.width  = w
       canvas.height = h
       const ctx = canvas.getContext('2d')
+
+      // For PNG with transparency — keep white background before JPEG conversion
+      if (file.type === 'image/png') {
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, w, h)
+      }
+
       ctx.drawImage(img, 0, 0, w, h)
+
+      // PNG stays PNG to preserve quality for logos/graphics; everything else → JPEG
+      const outType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+      const outQuality = outType === 'image/jpeg' ? quality : undefined
+
       canvas.toBlob(
-        blob => resolve(blob || file),  // fallback to original if toBlob fails
-        'image/jpeg',
-        quality
+        blob => resolve(blob || file),
+        outType,
+        outQuality
       )
     }
 
@@ -77,7 +92,8 @@ export function uploadImage(file, path, onProgress) {
 
       const storageRef = ref(storage, path)
       // Always store as JPEG after compression
-      const task = uploadBytesResumable(storageRef, compressed, { contentType: 'image/jpeg' })
+      const contentType = compressed.type || file.type || 'image/jpeg'
+      const task = uploadBytesResumable(storageRef, compressed, { contentType })
 
       task.on(
         'state_changed',

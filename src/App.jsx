@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { ThemeProvider } from './context/ThemeContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
@@ -10,21 +10,29 @@ import About from './pages/About'
 import PixelGuide from './pages/PixelGuide'
 import Contact from './pages/Contact'
 import Admin from './pages/Admin'
-export default function App() {
+
+function Layout() {
+  const { pathname } = useLocation()
+  const isAdmin = pathname === '/admin'
+
   return (
     <ThemeProvider>
-      <Navbar />
+      {!isAdmin && <Navbar />}
       <Routes>
-        <Route path="/"            element={<Home />} />
-        <Route path="/shop"        element={<Shop />} />
-        <Route path="/shop/:slug"  element={<PhoneDetail />} />
-        <Route path="/about"       element={<About />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/shop" element={<Shop />} />
+        <Route path="/shop/:slug" element={<PhoneDetail />} />
+        <Route path="/about" element={<About />} />
         <Route path="/pixel-guide" element={<PixelGuide />} />
-        <Route path="/contact"     element={<Contact />} />
-        <Route path="/admin"       element={<Admin />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
-      <Footer />
-      <WhatsAppFloat />
+      {!isAdmin && <Footer />}
+      {!isAdmin && <WhatsAppFloat />}
     </ThemeProvider>
   )
+}
+
+export default function App() {
+  return <Layout />
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth'
-import { auth, uploadImage } from '../lib/firebase'
+import { auth, db, uploadImage } from '../lib/firebase'
 import {
   getAllPhones, addPhone, updatePhone, deletePhone,
   getAllCatalog, addCatalogProduct, updateCatalogProduct, deleteCatalogProduct,
@@ -8,6 +8,7 @@ import {
   getBanners, addBanner, deleteBanner,
   addAccessory, updateAccessory, deleteAccessory,
 } from '../lib/phones'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { formatPrice } from '../lib/constants'
 
 const DOMAIN = '@novamobilesplus.com'
@@ -842,32 +843,22 @@ function TabPrices({phones, onSavePrice}) {
   )
 }
 
-/* ── Inline site image helpers ── */
+/* ── Site image helpers ── */
 async function getSiteImages() {
   try {
-    const { doc, getDoc } = await import('firebase/firestore')
-    const { db } = await import('../lib/firebase')
     const snap = await getDoc(doc(db, 'settings', 'siteImages'))
     return snap.exists() ? snap.data() : {}
   } catch { return {} }
 }
 async function setSiteImage(key, url) {
-  try {
-    const { doc, setDoc } = await import('firebase/firestore')
-    const { db } = await import('../lib/firebase')
-    await setDoc(doc(db, 'settings', 'siteImages'), { [key]: url }, { merge: true })
-  } catch { throw new Error('Failed to save') }
+  await setDoc(doc(db, 'settings', 'siteImages'), { [key]: url }, { merge: true })
 }
 async function removeSiteImage(key) {
-  try {
-    const { doc, setDoc, getDoc } = await import('firebase/firestore')
-    const { db } = await import('../lib/firebase')
-    const snap = await getDoc(doc(db, 'settings', 'siteImages'))
-    const current = snap.exists() ? snap.data() : {}
-    const updated = { ...current }
-    delete updated[key]
-    await setDoc(doc(db, 'settings', 'siteImages'), updated)
-  } catch { throw new Error('Failed to remove') }
+  const snap = await getDoc(doc(db, 'settings', 'siteImages'))
+  const current = snap.exists() ? snap.data() : {}
+  const updated = { ...current }
+  delete updated[key]
+  await setDoc(doc(db, 'settings', 'siteImages'), updated)
 }
 
 /* ═══════════════════════════════════════════════
@@ -893,14 +884,6 @@ function TabSiteImages({ showToast }) {
     finally { setSaving(s => ({...s, [key]: false})) }
   }
 
-  const handleRemove = async (key) => {
-    if (!confirm('Remove this image? The site will fall back to the default.')) return
-    setSaving(s => ({...s, [key]: true}))
-    try { await removeSiteImage(key); setImages(prev => {const n={...prev}; delete n[key]; return n}); showToast('Reverted to default') }
-    catch { showToast('Remove failed', 'error') }
-    finally { setSaving(s => ({...s, [key]: false})) }
-  }
-
   if (loading) return <div style={{display:'flex',alignItems:'center',gap:'.5rem',color:'#727785',fontSize:'.82rem',padding:'2rem 0'}}><div style={{width:16,height:16,border:'2px solid #005BBF',borderTopColor:'transparent',borderRadius:'50%',animation:'spin .6s linear infinite'}}/>Loading…</div>
 
   return (
@@ -920,7 +903,6 @@ function TabSiteImages({ showToast }) {
                 <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.9rem',marginBottom:'.2rem'}}>{slot.label}</p>
                 <p style={{fontSize:'.75rem',color:'#727785',marginBottom:'.85rem',lineHeight:1.5}}>{slot.desc}</p>
                 <ImageUploader storagePath={`site/${slot.key}`} onUploaded={url => handleUploaded(slot.key, url)} label={hasCustom?'Replace Image':'Upload Image'} hint={slot.hint}/>
-                {hasCustom && <button onClick={() => handleRemove(slot.key)} disabled={saving[slot.key]} style={{marginTop:'.55rem',background:'none',border:'none',color:'#C5221F',cursor:'pointer',fontSize:'.75rem',fontWeight:600,padding:0,fontFamily:'inherit'}}>✕ Remove custom (revert to default)</button>}
               </div>
             </div>
           )

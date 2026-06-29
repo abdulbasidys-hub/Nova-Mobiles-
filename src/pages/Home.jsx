@@ -1,4 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
+import { db } from '../lib/firebase'
+import { doc, getDoc } from 'firebase/firestore'
+
+function useSiteImage(key, fallback) {
+  const [url, setUrl] = useState(fallback)
+  useEffect(() => {
+    getDoc(doc(db, 'settings', 'siteImages'))
+      .then(snap => { if (snap.exists() && snap.data()[key]) setUrl(snap.data()[key]) })
+      .catch(() => {})
+  }, [key])
+  return url
+}
 import { Link } from 'react-router-dom'
 import { getFeaturedPhonesInstant, getReviewsInstant, getBannersInstant } from '../lib/phones'
 import { buildWhatsAppUrl } from '../lib/constants'
@@ -64,6 +76,7 @@ function BannerSlideshow({ banners }) {
 }
 
 export default function Home() {
+  const pixelHero = useSiteImage('pixelHero', '/images/pixel-hero.jpg')
   const [featured, setFeatured] = useState([])
   const [reviews,  setReviews]  = useState([])
   const banners    = useBanners()
@@ -218,7 +231,7 @@ export default function Home() {
       <section style={{ background:'var(--on-bg)', padding:'5rem 0', overflow:'hidden' }}>
         <div style={{ maxWidth:1280, margin:'0 auto', padding:'0 2.5rem', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4rem', alignItems:'center' }} className="pixel-g">
           <div style={{ aspectRatio:'4/5', borderRadius:24, overflow:'hidden', boxShadow:'0 24px 40px rgba(0,0,0,.3)', background:'#1a1d22' }}>
-            <img src='/images/pixel-hero.jpg'
+            <img src={pixelHero}
               onError={e => e.target.style.display='none'}
               alt="Pixel camera" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
           </div>
