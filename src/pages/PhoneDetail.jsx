@@ -173,23 +173,33 @@ export default function PhoneDetail() {
 
   const sold = !phone.available
 
-  // Color images from catalog
-  const colorImages  = catalog?.colorImages || {}
-  const colorOptions = Object.keys(colorImages)
+  // Only colours that exist as real inventory variants for this catalog model
+  const variantColors = [...new Set(
+    allPhones.filter(p => p.catalogId === phone.catalogId).map(p => p.color).filter(Boolean)
+  )]
+  // Swatches only shown when there's more than one colour actually in stock
+  const colorOptions = variantColors.length > 1 ? variantColors : []
 
-  // Normalise colorImages — may be {front,back,side,extra} object or legacy array
+  // Color library images from catalog (front/back/side/extra per colour)
+  const allColorImages = catalog?.colorImages || {}
   const getColorImageArray = (color) => {
-    const val = colorImages[color]
+    const val = allColorImages[color]
     if (!val) return []
     if (Array.isArray(val)) return val.filter(Boolean)
-    return Object.values(val).filter(Boolean)  // front, back, side, extra
+    return Object.values(val).filter(Boolean)
   }
 
-  const currentImages = selColor && getColorImageArray(selColor).length
-    ? getColorImageArray(selColor)
-    : phone.images?.length
-    ? phone.images
-    : []
+  // Find the actual inventory variant for the currently selected colour
+  // (so when switching colours we show THAT variant's own in-store photos as priority too)
+  const variantForSelectedColor = selColor
+    ? allPhones.find(p => p.catalogId === phone.catalogId && p.color === selColor)
+    : phone
+
+  // Gallery: in-store photos of the selected variant ALWAYS come first (main image),
+  // catalog colour-library photos are appended after as supporting images.
+  const ownPhotos     = variantForSelectedColor?.images?.length ? variantForSelectedColor.images : (selColor === phone.color ? phone.images : [])
+  const supportPhotos = selColor ? getColorImageArray(selColor) : []
+  const currentImages = [...new Set([...(ownPhotos||[]), ...supportPhotos])]
 
   // Specs table — merge phone specs + catalog specs, no price/status/condition
   const specs = phone.specs || {}
@@ -286,7 +296,7 @@ export default function PhoneDetail() {
                     )
                   })}
                 </div>
-                {!colorImages[selColor]?.length && selColor && (
+                {currentImages.length === 0 && selColor && (
                   <p style={{fontSize:'.72rem',color:'var(--outline)',marginTop:'.35rem'}}>No images uploaded for {selColor} yet</p>
                 )}
               </div>

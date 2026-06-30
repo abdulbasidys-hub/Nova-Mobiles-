@@ -31,7 +31,7 @@ function BrandSection({ brand, phones }) {
         </div>
       </button>
 
-      {/* Horizontal peek carousel */}
+      {/* Horizontal scroll — no arrow card, just seamless scroll on any device */}
       {open && (
         <div style={{ paddingBottom: '1.75rem' }}>
           <div className="peek-slider" style={{ gap: '1rem' }}>
@@ -40,10 +40,6 @@ function BrandSection({ brand, phones }) {
                 <ProductCard phone={p} />
               </div>
             ))}
-            {/* Peek ghost */}
-            <div style={{ width: 60, flexShrink: 0, borderRadius: 16, border: '1px solid var(--outline-var)', background: 'var(--glass-bg)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: .4 }}>
-              <span className="material-symbols-outlined" style={{ color: 'var(--outline)', fontSize: 24 }}>chevron_right</span>
-            </div>
           </div>
         </div>
       )}
@@ -134,6 +130,17 @@ export default function Shop() {
           </div>
         )}
       </div>
+
+      <style>{`
+        .peek-slider {
+          display: flex;
+          overflow-x: auto;
+          scroll-snap-type: none;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .peek-slider::-webkit-scrollbar { display: none; }
+      `}</style>
     </div>
   )
 }

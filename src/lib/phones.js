@@ -18,7 +18,8 @@ export function getAllPhonesInstant(onUpdate) {
 
 export function getFeaturedPhonesInstant(onUpdate) {
   onUpdate([])
-  getDocs(query(collection(db,'phones'), where('available','==',true), orderBy('createdAt','desc')))
+  // No orderBy combined with where — avoids needing a Firestore composite index
+  getDocs(query(collection(db,'phones'), where('available','==',true)))
     .then(snap => {
       const all = snap.docs.map(d => ({id:d.id,...d.data()}))
       const now         = Date.now()
@@ -72,11 +73,15 @@ export async function getReviews() {
   } catch { return [] }
 }
 
+function stripUndefined(obj) {
+  return Object.fromEntries(Object.entries(obj).filter(([,v]) => v !== undefined))
+}
+
 export async function addPhone(data) {
-  return addDoc(collection(db,'phones'), {...data, createdAt:serverTimestamp()})
+  return addDoc(collection(db,'phones'), {...stripUndefined(data), createdAt:serverTimestamp()})
 }
 export async function updatePhone(id, data) {
-  return updateDoc(doc(db,'phones',id), {...data, updatedAt:serverTimestamp()})
+  return updateDoc(doc(db,'phones',id), {...stripUndefined(data), updatedAt:serverTimestamp()})
 }
 export async function deletePhone(id) {
   return deleteDoc(doc(db,'phones',id))
@@ -104,18 +109,20 @@ export async function getCatalogById(id) {
 }
 
 export async function addCatalogProduct(data) {
-  return addDoc(collection(db,'catalog'), {...data, createdAt:serverTimestamp()})
+  return addDoc(collection(db,'catalog'), {...stripUndefined(data), createdAt:serverTimestamp()})
 }
 
 export async function updateCatalogProduct(id, data) {
-  await updateDoc(doc(db,'catalog',id), {...data, updatedAt:serverTimestamp()})
+  // Strip undefined values — Firestore rejects them
+  const cleanData = Object.fromEntries(Object.entries(data).filter(([,v]) => v !== undefined))
+  await updateDoc(doc(db,'catalog',id), {...cleanData, updatedAt:serverTimestamp()})
   // Propagate spec changes to all linked variants
-  const specs = {
-    display:data.display, processor:data.processor, camera:data.camera,
-    frontCamera:data.frontCamera, battery:data.battery, charging:data.charging,
-    os:data.os, connectivity:data.connectivity, protection:data.protection,
+  const rawSpecs = {
+    display:data.display, camera:data.camera, frontCamera:data.frontCamera,
+    battery:data.battery, charging:data.charging, os:data.os,
     dimensions:data.dimensions, weight:data.weight,
   }
+  const specs = Object.fromEntries(Object.entries(rawSpecs).filter(([,v]) => v !== undefined))
   const varSnap = await getDocs(query(collection(db,'phones'), where('catalogId','==',id)))
   if (!varSnap.empty) {
     const batch = writeBatch(db)

@@ -573,7 +573,9 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
     setErr('')
     const cp   = catalog.find(c => c.id === form.catalogId)
     const slug = form.slug || (cp ? cp.slug+'-'+form.storage+'-'+form.color : '').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')
-    const specs = { display:cp?.display, processor:cp?.processor, camera:cp?.camera, frontCamera:cp?.frontCamera, battery:cp?.battery, charging:cp?.charging, os:cp?.os, connectivity:cp?.connectivity, protection:cp?.protection }
+    const rawSpecs = { display:cp?.display, camera:cp?.camera, frontCamera:cp?.frontCamera, battery:cp?.battery, charging:cp?.charging, os:cp?.os, dimensions:cp?.dimensions, weight:cp?.weight }
+    // Strip undefined values — Firestore rejects them
+    const specs = Object.fromEntries(Object.entries(rawSpecs).filter(([,v]) => v !== undefined))
     const featuredUntil = Date.now() + 7 * 24 * 60 * 60 * 1000
     onSave({ catalogId:form.catalogId, brand:cp?.brand||'', model:cp?.model||'', name:cp?.model||'', color:form.color, storage:form.storage, condition:form.condition, price:Number(form.price), available:true, featured:true, featuredUntil, images:form.images||[], slug, specs })
   }
@@ -756,9 +758,9 @@ function TabImages({catalog, phones, showToast}) {
                         <p style={{fontSize:'.62rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:hasImg?'#137333':'#414754',marginBottom:'.35rem',textAlign:'center'}}>
                           {hasImg ? '✓ ' : ''}{slot}
                         </p>
-                        <div style={{width:'100%',height:64,background:'#F2F4F6',borderRadius:6,overflow:'hidden',border:`1px solid ${hasImg?'#C4E8CE':'#E6E8EA'}`,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'.4rem'}}>
+                        <div style={{width:'100%',aspectRatio:'1/1',background:'#F2F4F6',borderRadius:6,overflow:'hidden',border:`1px solid ${hasImg?'#C4E8CE':'#E6E8EA'}`,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'.4rem'}}>
                           {hasImg
-                            ? <img src={imgs[slot]} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}} onError={e=>{e.target.style.display='none'}}/>
+                            ? <img src={imgs[slot]} alt="" style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'top'}} onError={e=>{e.target.style.display='none'}}/>
                             : <span style={{fontSize:18,opacity:.15}}>📱</span>
                           }
                         </div>
@@ -1156,7 +1158,10 @@ export default function Admin() {
       if(editing){await updatePhone(editing.id,data)}else{await addPhone(data)}
       setEditing(null);setTab('inventory');load()
       show(editing?'Variant updated':'Phone added to inventory')
-    }catch{show('Save failed — check Firestore rules','error')}
+    }catch(err){
+      console.error('Save error:', err)
+      show(`Save failed: ${err?.code || err?.message || 'unknown error'}`,'error')
+    }
     finally{setSaving(false)}
   }
   const handleSavePrice=async(id,price)=>{await updatePhone(id,{price});setPhones(prev=>prev.map(p=>p.id===id?{...p,price}:p))}

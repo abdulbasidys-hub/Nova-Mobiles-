@@ -1,42 +1,9 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-
-/* Try /images/Phones/{slug}.jpg → .png → .webp → phone.images[0] → null */
-function usePhoneImage(phone) {
-  const EXTS = ['jpg', 'jpeg', 'png', 'webp']
-  const [idx,    setIdx]    = useState(0)   // index into EXTS
-  const [fbDone, setFbDone] = useState(false) // tried phone.images[0]
-
-  const base = `/images/Phones/${phone.slug}`
-
-  if (fbDone) return { src: null, onError: () => {} }
-
-  if (idx < EXTS.length) {
-    return {
-      src: `${base}.${EXTS[idx]}`,
-      onError: () => {
-        if (idx + 1 < EXTS.length) {
-          setIdx(idx + 1)
-        } else if (phone.images?.[0]) {
-          setIdx(EXTS.length) // signal to use fallback URL
-        } else {
-          setFbDone(true)
-        }
-      },
-    }
-  }
-
-  // All local exts failed — try the URL from admin (phone.images[0])
-  return {
-    src: phone.images[0] || null,
-    onError: () => setFbDone(true),
-  }
-}
 
 export default function ProductCard({ phone }) {
   const navigate = useNavigate()
   const sold     = !phone.available
-  const { src, onError } = usePhoneImage(phone)
+  const src      = phone.images?.[0] || null
 
   return (
     <article
@@ -60,17 +27,17 @@ export default function ProductCard({ phone }) {
         e.currentTarget.style.boxShadow = 'none'
       }}
     >
-      {/* Phone image */}
+      {/* Phone image — always the inventory photo, fit to fill card from top */}
       {src ? (
         <img
           src={src}
           alt={phone.name}
-          onError={onError}
+          onError={e => { e.target.style.display = 'none' }}
           style={{
             position: 'absolute', inset: 0,
             width: '100%', height: '100%',
-            objectFit: 'contain',
-            padding: '8%',
+            objectFit: 'cover',
+            objectPosition: 'top',
           }}
         />
       ) : (
