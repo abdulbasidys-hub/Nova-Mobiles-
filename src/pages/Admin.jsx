@@ -50,7 +50,7 @@ const BRAND_ICONS       = {'Google Pixel':'🟢','iPhone':'🍎','Huawei':'🔴'
 /* ── Shared UI ───────────────────────────────────── */
 const I = { background:'#F2F4F6', color:'#191C1E', border:'1.5px solid #C1C6D6', borderRadius:8, padding:'.55rem .8rem', fontSize:'.85rem', fontFamily:'inherit', outline:'none', width:'100%' }
 const Sel = ({value, onChange, options, placeholder, disabled}) => (
-  <select value={value} onChange={onChange} disabled={disabled} style={{...I, appearance:'none', opacity:disabled?.6:1}}>
+  <select value={value} onChange={onChange} disabled={disabled} style={{...I, appearance:'none', opacity:disabled ? 0.6 : 1}}>
     {placeholder && <option value="">{placeholder}</option>}
     {options.map(o => <option key={o} value={o}>{o}</option>)}
   </select>
@@ -274,7 +274,7 @@ function TabInventory({phones, setPhones, onEdit}) {
             <span style={{fontSize:'.68rem',color:'#727785',fontWeight:600}}>{list.length}</span>
           </div>
           {list.map(p=>(
-            <div key={p.id} style={{display:'flex',alignItems:'center',gap:'.85rem',padding:'.6rem .85rem',background:'#fff',border:'1px solid #C1C6D6',borderRadius:10,marginBottom:'.3rem',flexWrap:'wrap',opacity:deleting[p.id]?.5:1,transition:'opacity .2s'}}>
+            <div key={p.id} style={{display:'flex',alignItems:'center',gap:'.85rem',padding:'.6rem .85rem',background:'#fff',border:'1px solid #C1C6D6',borderRadius:10,marginBottom:'.3rem',flexWrap:'wrap',opacity:deleting[p.id] ? 0.5 : 1,transition:'opacity .2s'}}>
               <div style={{width:40,height:48,background:'#F2F4F6',borderRadius:6,overflow:'hidden',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
                 {p.images?.[0] ? <img src={p.images[0]} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}}/> : <span style={{fontSize:20,opacity:.3}}>📱</span>}
               </div>
@@ -442,7 +442,7 @@ function CatalogDetailModal({cat, onEdit, onDelete, onClose, deleting}) {
         </div>
         <div style={{display:'flex',gap:'.65rem',padding:'1rem 1.25rem',borderTop:'1px solid #E6E8EA',position:'sticky',bottom:0,background:'#fff'}}>
           <button onClick={()=>onEdit(cat)} style={{flex:1,background:'#005BBF',color:'#fff',border:'none',borderRadius:9,padding:'.6rem 0',fontFamily:'inherit',fontWeight:700,fontSize:'.85rem',cursor:'pointer'}}>Edit</button>
-          <button onClick={()=>onDelete(cat)} disabled={deleting} style={{flex:1,background:'#FCE8E6',color:'#C5221F',border:'none',borderRadius:9,padding:'.6rem 0',fontFamily:'inherit',fontWeight:700,fontSize:'.85rem',cursor:'pointer',opacity:deleting?.6:1}}>{deleting?'Deleting…':'Delete'}</button>
+          <button onClick={()=>onDelete(cat)} disabled={deleting} style={{flex:1,background:'#FCE8E6',color:'#C5221F',border:'none',borderRadius:9,padding:'.6rem 0',fontFamily:'inherit',fontWeight:700,fontSize:'.85rem',cursor:'pointer',opacity:deleting ? 0.6 : 1}}>{deleting?'Deleting…':'Delete'}</button>
         </div>
       </div>
     </div>
@@ -523,16 +523,23 @@ function TabCatalog({catalog, setCatalog, showToast}) {
           </button>
           {!collapsed[brand]&&(
             <div style={{padding:'.75rem',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:'.6rem',background:'#fff',borderTop:'1px solid #E6E8EA'}}>
-              {list.map(cat=>(
+              {list.map(cat => {
+                const cols      = (cat.availableColors||[]).filter(Boolean)
+                const imgs      = cat.colorImages||{}
+                const complete  = cols.length>0 && cols.every(col=>{const v=imgs[col];return v&&v.front&&v.back&&v.side})
+                const borderCol = complete ? '#ADC7FF' : '#C1C6D6'
+                const bgCol     = complete ? '#EBF1FF' : '#fff'
+                return (
                 <div key={cat.id} onClick={()=>setModal(cat)}
-                  style={{border:'1px solid #C1C6D6',borderRadius:10,padding:'.65rem .75rem',cursor:'pointer',opacity:deleting[cat.id]?.4:1,transition:'all .15s',background:'#fff',userSelect:'none'}}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor='#005BBF';e.currentTarget.style.background='#F7FAFF'}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor='#C1C6D6';e.currentTarget.style.background='#fff'}}>
+                  style={{border:`1.5px solid ${borderCol}`,borderRadius:10,padding:'.65rem .75rem',cursor:'pointer',opacity:deleting[cat.id] ? 0.4 : 1,transition:'all .15s',background:bgCol,userSelect:'none'}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor='#005BBF';e.currentTarget.style.background=complete?'#E0EAFF':'#F7FAFF'}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=borderCol;e.currentTarget.style.background=bgCol}}>
                   <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.82rem',lineHeight:1.2,marginBottom:'.2rem'}}>{cat.model}</p>
                   {cat.availableColors?.length>0&&<p style={{fontSize:'.65rem',color:'#727785'}}>{cat.availableColors.length} colour{cat.availableColors.length!==1?'s':''}</p>}
                   {cat.display&&<p style={{fontSize:'.63rem',color:'#414754',marginTop:'.25rem',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cat.display}</p>}
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -650,7 +657,7 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
 /* ═══════════════════════════════════════════════
    TAB 4 — PHONE IMAGES
 ═══════════════════════════════════════════════ */
-function TabImages({catalog, phones, showToast}) {
+function TabImages({catalog, setCatalog, phones, showToast}) {
   const [selBrand,    setSelBrand]    = useState('')
   const [selId,       setSelId]       = useState('')
   const [colorImages, setColorImages] = useState({})
@@ -693,6 +700,8 @@ function TabImages({catalog, phones, showToast}) {
     setSaving(true)
     try {
       await updateCatalogColorImages(selId, colorImages)
+      // Update local catalog state so green indicator works immediately
+      setCatalog(prev => prev.map(c => c.id === selId ? {...c, colorImages} : c))
       showToast('Colour images saved')
     } catch { showToast('Save failed — check Firestore rules', 'error') }
     finally { setSaving(false) }
@@ -750,15 +759,15 @@ function TabImages({catalog, phones, showToast}) {
                   <span style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.88rem',flex:1}}>{color}</span>
                   <span style={{fontSize:'.68rem',color:filled===3?'#137333':'#727785',fontWeight:600}}>{filled}/3</span>
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:0,background:'#fff'}}>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,120px))',gap:0,background:'#fff',justifyContent:'start'}}>
                   {SLOTS.map((slot, si) => {
                     const hasImg = !!imgs[slot]
                     return (
-                      <div key={slot} style={{padding:'.6rem .7rem',borderRight:si<2?'1px solid #E6E8EA':'none'}}>
+                      <div key={slot} style={{padding:'.45rem .4rem',borderRight:si<2?'1px solid #E6E8EA':'none'}}>
                         <p style={{fontSize:'.62rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:hasImg?'#137333':'#414754',marginBottom:'.35rem',textAlign:'center'}}>
                           {hasImg ? '✓ ' : ''}{slot}
                         </p>
-                        <div style={{width:'100%',aspectRatio:'1/1',background:'#F2F4F6',borderRadius:6,overflow:'hidden',border:`1px solid ${hasImg?'#C4E8CE':'#E6E8EA'}`,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'.4rem'}}>
+                        <div style={{width:'100%',aspectRatio:'3/4',background:'#F2F4F6',borderRadius:8,overflow:'hidden',border:`2px solid ${hasImg?'#ADC7FF':'#E6E8EA'}`,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'.4rem'}}>
                           {hasImg
                             ? <img src={imgs[slot]} alt="" style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'top'}} onError={e=>{e.target.style.display='none'}}/>
                             : <span style={{fontSize:18,opacity:.15}}>📱</span>
@@ -956,7 +965,7 @@ function TabBanners({ showToast }) {
           <p style={{fontSize:'.72rem',color:'#727785',marginBottom:'1rem'}}>{banners.length} banner{banners.length!==1?'s':''}</p>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:'1rem'}}>
             {banners.map((b, i) => (
-              <div key={b.id} style={{border:'1px solid #C1C6D6',borderRadius:12,overflow:'hidden',background:'#fff',opacity:deleting[b.id]?.5:1,transition:'opacity .2s'}}>
+              <div key={b.id} style={{border:'1px solid #C1C6D6',borderRadius:12,overflow:'hidden',background:'#fff',opacity:deleting[b.id] ? 0.5 : 1,transition:'opacity .2s'}}>
                 <div style={{aspectRatio:'10/9',background:'#F2F4F6',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center'}}>
                   <img src={b.url} alt={`Banner ${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none'}}/>
                 </div>
@@ -1206,7 +1215,7 @@ export default function Admin() {
         {tab==='inventory'  &&<TabInventory    phones={phones} setPhones={setPhones} onEdit={p=>{setEditing(p);setTab('add')}}/>}
         {tab==='catalog'    &&<TabCatalog      catalog={catalog} setCatalog={setCatalog} showToast={show}/>}
         {tab==='add'        &&<TabAddInventory catalog={catalog} editPhone={editing} onSave={handleSave} onCancel={()=>{setEditing(null);setTab('inventory')}} saving={saving}/>}
-        {tab==='images'     &&<TabImages       catalog={catalog} phones={phones} showToast={show}/>}
+        {tab==='images'     &&<TabImages       catalog={catalog} setCatalog={setCatalog} phones={phones} showToast={show}/>}
         {tab==='prices'     &&<TabPrices       phones={phones} onSavePrice={handleSavePrice}/>}
         {tab==='banners'    &&<TabBanners      showToast={show}/>}
         {tab==='siteimages' &&<TabSiteImages   showToast={show}/>}
