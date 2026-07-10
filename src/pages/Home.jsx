@@ -17,45 +17,62 @@ function useBanners() {
 
 /* ── Banner slideshow ──────────────────────────────────────────── */
 function BannerSlideshow({ banners }) {
-  const [idx, setIdx]     = useState(0)
-  const [fade, setFade]   = useState(true)
+  const [cur,  setCur]  = useState(0)
+  const [prev, setPrev] = useState(null)
+  const [fading, setFading] = useState(false)
+
+  const goTo = (next) => {
+    if (next === cur || fading) return
+    setPrev(cur)
+    setCur(next)
+    setFading(true)
+    setTimeout(() => { setPrev(null); setFading(false) }, 600)
+  }
 
   useEffect(() => {
     if (banners.length <= 1) return
-    const t = setInterval(() => {
-      setFade(false)
-      setTimeout(() => {
-        setIdx(i => (i + 1) % banners.length)
-        setFade(true)
-      }, 350)
-    }, 10000)
+    const t = setInterval(() => goTo((cur + 1) % banners.length), 5000)
     return () => clearInterval(t)
-  }, [banners])
+  }, [banners, cur, fading])
 
   if (!banners.length) return (
-    <div style={{ width:'100%', height:'100%', background:'var(--surface-low)', borderRadius:20, display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <span className="material-symbols-outlined" style={{ fontSize:80, opacity:.12, color:'var(--primary)' }}>smartphone</span>
-    </div>
+    <div style={{ width:'100%', height:'100%', background:'var(--surface-low)', borderRadius:20 }} />
   )
 
   return (
     <div style={{ position:'relative', width:'100%', height:'100%', borderRadius:20, overflow:'hidden', background:'#F1F3F4' }}>
+      {/* Previous image fades out underneath */}
+      {prev !== null && (
+        <img
+          key={`prev-${prev}`}
+          src={banners[prev]}
+          alt=""
+          style={{
+            position:'absolute', inset:0,
+            width:'100%', height:'100%', objectFit:'contain', display:'block',
+            opacity: fading ? 0 : 1,
+            transition: 'opacity .6s ease',
+          }}
+        />
+      )}
+      {/* Current image fades in on top */}
       <img
-        src={banners[idx]}
-        alt={`Banner ${idx + 1}`}
+        key={`cur-${cur}`}
+        src={banners[cur]}
+        alt={`Banner ${cur + 1}`}
         style={{
-          width:'100%', height:'100%', objectFit:'contain',
-          opacity: fade ? 1 : 0,
-          transition: 'opacity .35s ease',
-          display:'block',
+          position:'absolute', inset:0,
+          width:'100%', height:'100%', objectFit:'contain', display:'block',
+          opacity: fading ? 1 : 1,
+          transition: 'opacity .6s ease',
         }}
       />
       {/* Dots */}
       {banners.length > 1 && (
-        <div style={{ position:'absolute', bottom:12, left:'50%', transform:'translateX(-50%)', display:'flex', gap:6 }}>
+        <div style={{ position:'absolute', bottom:12, left:'50%', transform:'translateX(-50%)', display:'flex', gap:6, zIndex:2 }}>
           {banners.map((_, i) => (
-            <button key={i} onClick={() => { setFade(false); setTimeout(() => { setIdx(i); setFade(true) }, 200) }}
-              style={{ width: i===idx ? 20 : 7, height:7, borderRadius:99, border:'none', cursor:'pointer', background: i===idx ? '#fff' : 'rgba(255,255,255,.5)', transition:'all .3s', padding:0 }} />
+            <button key={i} onClick={() => goTo(i)}
+              style={{ width: i===cur ? 20 : 7, height:7, borderRadius:99, border:'none', cursor:'pointer', background: i===cur ? '#fff' : 'rgba(255,255,255,.5)', transition:'all .3s', padding:0 }} />
           ))}
         </div>
       )}
@@ -167,7 +184,7 @@ export default function Home() {
               ? [...Array(5)].map((_, i) => (
                   <div key={i} className="sk" style={{ width:180, height:280, flexShrink:0, borderRadius:16 }} />
                 ))
-              : featured.map((p, i) => (
+              : featured.filter(p => p.images?.length > 0).map((p, i) => (
                   <div key={p.id} style={{
                     width: 180, flexShrink:0,
                     scrollSnapAlign:'start',

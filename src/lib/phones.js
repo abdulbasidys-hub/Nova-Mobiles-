@@ -35,7 +35,7 @@ export function getFeaturedPhonesInstant(onUpdate) {
 
       // No new phones — show best (most expensive) from each brand
       const brands = [...new Set(all.map(p => p.brand))]
-      const BRAND_ORDER = ['Google Pixel','iPhone','Huawei','Honor','Oppo','Moto G','Samsung']
+      const BRAND_ORDER = ['Google Pixel','iPhone','Huawei','Honor','Oppo','Motorola','Samsung']
       const ordered = [...BRAND_ORDER.filter(b=>brands.includes(b)), ...brands.filter(b=>!BRAND_ORDER.includes(b))]
       const best = ordered.map(brand =>
         all.filter(p=>p.brand===brand).sort((a,b)=>b.price-a.price)[0]
@@ -91,7 +91,7 @@ export async function deletePhone(id) {
 export async function getAllCatalog() {
   const snap = await getDocs(collection(db,'catalog'))
   const docs = snap.docs.map(d => ({id:d.id,...d.data()}))
-  const BORDER = ['Google Pixel','iPhone','Huawei','Honor','Oppo','Moto G','Samsung']
+  const BORDER = ['Google Pixel','iPhone','Huawei','Honor','Oppo','Motorola','Samsung']
   const getNum = name => { const n = (name||'').match(/\d+/g); return n ? Math.max(...n.map(Number)) : 0 }
   return docs.sort((a,b) => {
     const bi = BORDER.indexOf(a.brand), bj = BORDER.indexOf(b.brand)
@@ -192,7 +192,17 @@ export async function deleteAccessory(id) {
 /* ── Site Images ─────────────────────────────────── */
 export function getSiteImagesInstant(onUpdate) {
   onUpdate({})
-  getDoc(doc(db,'settings','siteImages'))
-    .then(snap => { if (snap.exists()) onUpdate(snap.data()) })
-    .catch(() => {})
+  getDoc(doc(db,'site','images'))
+    .then(snap => {
+      if (snap.exists()) {
+        const data = snap.data()
+        console.log('[SiteImages] loaded from Firestore:', data)
+        onUpdate(data)
+      } else {
+        console.warn('[SiteImages] document does not exist in Firestore at settings/siteImages')
+      }
+    })
+    .catch(err => {
+      console.error('[SiteImages] Firestore read error:', err)
+    })
 }

@@ -16,7 +16,7 @@ const DOMAIN = '@novamobilesplus.com'
 const BRAND_COLORS = {
   'Huawei':       ['Space Black','Silver Frost','Breathing Crystal','Emerald Green','Nebula Red','Cocoa Gold','Pearl White','Dark Blue'],
   'Honor':        ['Titanium Silver','Midnight Black','Emerald Green','Purple','Cyan Lake','Gold','Magic Night Black','Ice Silver'],
-  'Motorolla':    ['Mineral Gray','Viva Magenta','Steel Blue','Blush Gold','Charcoal','Sky Blue','Sage Green','Midnight Blue'],
+  'Motorola':    ['Mineral Gray','Viva Magenta','Steel Blue','Blush Gold','Charcoal','Sky Blue','Sage Green','Midnight Blue'],
   'Google Pixel': ['Obsidian','Porcelain','Bay','Hazel','Mint','Coral','Lemongrass','Sage','Charcoal','Pearl','Snow','Peony','Matcha','Wintergreen','Mocha'],
   'iPhone':       ['Black Titanium','White Titanium','Natural Titanium','Desert Titanium','Pink','Black','White','Blue','Green','Yellow','Purple','Red','Starlight','Midnight','Storm Blue','Ultramarine','Teal','Sand'],
   'Samsung':      ['Phantom Black','Phantom White','Titanium Black','Titanium Gray','Titanium Blue','Titanium Violet','Titanium Yellow','Cream','Lavender','Green','Navy','Lime','Graphite'],
@@ -44,8 +44,8 @@ const COLOR_HEX = {
 
 const STORAGE_OPTIONS   = ['32GB','64GB','128GB','256GB','512GB','1TB']
 const CONDITION_OPTIONS = ['Brand New','London Used','Nigerian Used']
-const BRAND_ORDER       = ['Google Pixel','iPhone','Huawei','Honor','Oppo','Motorolla','Samsung']
-const BRAND_ICONS       = {'Google Pixel':'🟢','iPhone':'🍎','Huawei':'🔴','Honor':'⚪','Oppo':'🟠','Motorolla':'🟣','Samsung':'🔵'}
+const BRAND_ORDER       = ['Google Pixel','iPhone','Huawei','Honor','Oppo','Motorola','Samsung']
+const BRAND_ICONS       = {'Google Pixel':'🟢','iPhone':'🍎','Huawei':'🔴','Honor':'⚪','Oppo':'🟠','Motorola':'🟣','Samsung':'🔵'}
 
 /* ── Shared UI ───────────────────────────────────── */
 const I = { background:'#F2F4F6', color:'#191C1E', border:'1.5px solid #C1C6D6', borderRadius:8, padding:'.55rem .8rem', fontSize:'.85rem', fontFamily:'inherit', outline:'none', width:'100%' }
@@ -314,7 +314,7 @@ const SPEC_FIELDS = [
   {key:'dimensions',   label:'Dimensions',      placeholder:'e.g. 162.6 × 76.5 × 8.8mm'},
   {key:'weight',       label:'Weight',          placeholder:'e.g. 213g'},
 ]
-const BRANDS_LIST = ['Google Pixel','iPhone','Huawei','Honor','Oppo','Motorolla','Other']
+const BRANDS_LIST = ['Google Pixel','iPhone','Huawei','Honor','Oppo','Motorola','Other']
 
 function CatalogForm({initial, onSave, onCancel, saving}) {
   const [form,        setForm]        = useState(initial || {brand:'',model:'',...Object.fromEntries(SPEC_FIELDS.map(f=>[f.key,''])),availableColors:['','']})
@@ -632,18 +632,19 @@ function TabAddInventory({catalog, editPhone, onSave, onCancel, saving}) {
       </div>
 
       <div style={{background:'#F2F4F6',borderRadius:12,padding:'1.25rem',marginBottom:'1.25rem',border:'1px solid #C1C6D6'}}>
-        <p style={{fontSize:'.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754',marginBottom:'.35rem'}}>Step 3 — Live In-Store Photos</p>
-        <p style={{fontSize:'.75rem',color:'#727785',marginBottom:'.85rem'}}>Photos of <strong>this specific unit</strong> — the ones customers see first when they open the phone.</p>
-        {(form.images||[]).length > 0 && (
-          <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',marginBottom:'.85rem'}}>
-            {form.images.map((url,i)=>(
-              <ImageThumb key={url+i} url={url} onRemove={()=>removePhoto(i)} label={i===0?'Main photo':undefined}/>
-            ))}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'.35rem'}}>
+          <p style={{fontSize:'.68rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em',color:'#414754'}}>Step 3 — Live In-Store Photos</p>
+          {(form.images||[]).length>0&&<span style={{fontSize:'.68rem',color:'#727785'}}>{form.images.length} photo{form.images.length!==1?'s':''}</span>}
+        </div>
+        <p style={{fontSize:'.75rem',color:'#727785',marginBottom:'.75rem'}}>Upload as many angles as you want. First photo is the main image customers see.</p>
+        <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',alignItems:'flex-start'}}>
+          {(form.images||[]).map((url,i)=>(
+            <ImageThumb key={url+i} url={url} onRemove={()=>removePhoto(i)} label={i===0?'Main':''}/>
+          ))}
+          <div style={{width:76,flexShrink:0}}>
+            <ImageUploader storagePath={variantStoragePath} onUploaded={handlePhotoUploaded} label="+ Add" compact hint=""/>
           </div>
-        )}
-        <ImageUploader storagePath={variantStoragePath} onUploaded={handlePhotoUploaded}
-          label={form.images?.length ? 'Add Another Photo' : 'Upload Photo (from camera or gallery)'}
-          hint="First photo uploaded becomes the main display image."/>
+        </div>
       </div>
 
       <div style={{display:'flex',gap:'.55rem'}}>
@@ -857,19 +858,19 @@ function TabPrices({phones, onSavePrice}) {
 /* ── Site image helpers ── */
 async function getSiteImages() {
   try {
-    const snap = await getDoc(doc(db, 'settings', 'siteImages'))
+    const snap = await getDoc(doc(db, 'site', 'images'))
     return snap.exists() ? snap.data() : {}
   } catch { return {} }
 }
 async function setSiteImage(key, url) {
-  await setDoc(doc(db, 'settings', 'siteImages'), { [key]: url }, { merge: true })
+  await setDoc(doc(db, 'site', 'images'), { [key]: url }, { merge: true })
 }
 async function removeSiteImage(key) {
-  const snap = await getDoc(doc(db, 'settings', 'siteImages'))
+  const snap = await getDoc(doc(db, 'site', 'images'))
   const current = snap.exists() ? snap.data() : {}
   const updated = { ...current }
   delete updated[key]
-  await setDoc(doc(db, 'settings', 'siteImages'), updated)
+  await setDoc(doc(db, 'site', 'images'), updated)
 }
 
 /* ═══════════════════════════════════════════════
