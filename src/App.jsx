@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { ThemeProvider } from './context/ThemeContext'
 import Navbar from './components/Navbar'
@@ -14,6 +15,8 @@ import Admin from './pages/Admin'
 function Layout() {
   const { pathname } = useLocation()
   const isAdmin = pathname === '/admin'
+
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
 
   return (
     <ThemeProvider>
