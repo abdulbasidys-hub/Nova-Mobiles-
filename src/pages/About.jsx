@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react'
-import { getSiteImagesInstant } from '../lib/phones'
+import { useState } from 'react'
 import { buildWhatsAppUrl, SITE } from '../lib/constants'
 import WatermarkSection from '../components/WatermarkSection'
 
@@ -15,15 +14,13 @@ function SiteImage({ src, alt, fallbackIcon, fallbackLabel }) {
   }
   return (
     <img src={src} alt={alt} onError={() => setErrored(true)}
-      style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+      style={{ width:'100%', height:'100%', objectFit:'contain', display:'block' }} />
   )
 }
 
 export default function About() {
-  const [siteImgs, setSiteImgs] = useState({})
-  useEffect(() => { getSiteImagesInstant(setSiteImgs) }, [])
-  const ownerSrc = siteImgs.ownerPhoto || '/images/owner.jpg'
-  const shopSrc  = siteImgs.shopPhoto  || '/images/shop.jpg'
+  const ownerSrc = '/owner.jpg'
+  const shopSrc  = '/shop.jpg'
 
   return (
     <div className="pt">
@@ -60,7 +57,7 @@ export default function About() {
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1.5fr', gap:'3rem', alignItems:'start' }} className="owner-g">
 
             {/* Owner photo */}
-            <div style={{ width:'100%', aspectRatio:'4/3', border:'1px solid var(--outline-var)', borderRadius:8, overflow:'hidden' }}>
+            <div style={{ width:'100%', aspectRatio:'3/4', border:'1px solid var(--outline-var)', borderRadius:8, overflow:'hidden' }}>
               <SiteImage src={ownerSrc} alt="Auwal Adam Muhammad" fallbackIcon="👤" fallbackLabel="owner photo" />
             </div>
 
@@ -119,7 +116,7 @@ export default function About() {
 
             {/* Shop photo */}
             <div>
-              <div style={{ width:'100%', aspectRatio:'4/3', border:'1px solid var(--outline-var)', borderRadius:8, overflow:'hidden' }}>
+              <div style={{ width:'100%', aspectRatio:'2/3', border:'1px solid var(--outline-var)', borderRadius:8, overflow:'hidden' }}>
                 <SiteImage src={shopSrc} alt="Nova Mobiles Plus shop" fallbackIcon="🏪" fallbackLabel="shop photo" />
               </div>
               <p style={{ fontSize:'.72rem', color:'var(--on-surface-var)', textAlign:'center', marginTop:'.6rem' }}>No. 6 Lukoro B Farm Center, Kano</p>

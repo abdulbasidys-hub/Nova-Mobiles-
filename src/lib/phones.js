@@ -188,21 +188,3 @@ export async function updateAccessory(id, data) {
 export async function deleteAccessory(id) {
   return deleteDoc(doc(db,'accessories',id))
 }
-
-/* ── Site Images ─────────────────────────────────── */
-export function getSiteImagesInstant(onUpdate) {
-  onUpdate({})
-  getDoc(doc(db,'site','images'))
-    .then(snap => {
-      if (snap.exists()) {
-        const data = snap.data()
-        console.log('[SiteImages] loaded from Firestore:', data)
-        onUpdate(data)
-      } else {
-        console.warn('[SiteImages] document does not exist in Firestore at settings/siteImages')
-      }
-    })
-    .catch(err => {
-      console.error('[SiteImages] Firestore read error:', err)
-    })
-}

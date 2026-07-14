@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { getFeaturedPhonesInstant, getReviewsInstant, getBannersInstant, getSiteImagesInstant } from '../lib/phones'
+import { getFeaturedPhonesInstant, getReviewsInstant, getBannersInstant } from '../lib/phones'
 import { buildWhatsAppUrl } from '../lib/constants'
 import ProductCard from '../components/ProductCard'
 import WatermarkSection from '../components/WatermarkSection'
@@ -81,9 +81,7 @@ function BannerSlideshow({ banners }) {
 }
 
 export default function Home() {
-  const [siteImgs, setSiteImgs] = useState({})
-  useEffect(() => { getSiteImagesInstant(setSiteImgs) }, [])
-  const pixelHero = siteImgs.pixelHero || '/images/pixel-hero.jpg'
+  const pixelHero = '/pixel-hero.jpg'
   const [featured, setFeatured] = useState([])
   const [reviews,  setReviews]  = useState([])
   const banners    = useBanners()

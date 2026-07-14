@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth'
-import { auth, db, uploadImage } from '../lib/firebase'
+import { auth, uploadImage } from '../lib/firebase'
 import {
   getAllPhones, addPhone, updatePhone, deletePhone,
   getAllCatalog, addCatalogProduct, updateCatalogProduct, deleteCatalogProduct,
@@ -8,7 +8,6 @@ import {
   getBanners, addBanner, deleteBanner,
   addAccessory, updateAccessory, deleteAccessory,
 } from '../lib/phones'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { formatPrice } from '../lib/constants'
 
 const DOMAIN = '@novamobilesplus.com'
@@ -855,75 +854,6 @@ function TabPrices({phones, onSavePrice}) {
   )
 }
 
-/* ── Site image helpers ── */
-async function getSiteImages() {
-  try {
-    const snap = await getDoc(doc(db, 'site', 'images'))
-    return snap.exists() ? snap.data() : {}
-  } catch { return {} }
-}
-async function setSiteImage(key, url) {
-  await setDoc(doc(db, 'site', 'images'), { [key]: url }, { merge: true })
-}
-async function removeSiteImage(key) {
-  const snap = await getDoc(doc(db, 'site', 'images'))
-  const current = snap.exists() ? snap.data() : {}
-  const updated = { ...current }
-  delete updated[key]
-  await setDoc(doc(db, 'site', 'images'), updated)
-}
-
-/* ═══════════════════════════════════════════════
-   TAB — SITE IMAGES
-═══════════════════════════════════════════════ */
-const SITE_IMAGE_SLOTS = [
-  { key:'ownerPhoto', label:"Owner's Photo",   desc:'Shown on the About page beside the founder biography.', fallback:'/images/owner.jpg',     hint:'Portrait orientation works best.',                     aspect:'4/3' },
-  { key:'shopPhoto',  label:'Shop Photo',       desc:'Shown on the About page in the Shop section.',          fallback:'/images/shop.jpg',      hint:'Landscape photo of the shop front or interior.',       aspect:'4/3' },
-  { key:'pixelHero',  label:'Pixel Hero Image', desc:'Dark background section on the homepage.',              fallback:'/images/pixel-hero.jpg', hint:'Dark or moody photo of a Pixel phone. Landscape.',    aspect:'4/3' },
-]
-
-function TabSiteImages({ showToast }) {
-  const [images,  setImages]  = useState({})
-  const [saving,  setSaving]  = useState({})
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => { getSiteImages().then(imgs => { setImages(imgs); setLoading(false) }) }, [])
-
-  const handleUploaded = async (key, url) => {
-    setSaving(s => ({...s, [key]: true}))
-    try { await setSiteImage(key, url); setImages(prev => ({...prev, [key]: url})); showToast('Image updated — live on site immediately') }
-    catch { showToast('Save failed — check Firestore rules', 'error') }
-    finally { setSaving(s => ({...s, [key]: false})) }
-  }
-
-  if (loading) return <div style={{display:'flex',alignItems:'center',gap:'.5rem',color:'#727785',fontSize:'.82rem',padding:'2rem 0'}}><div style={{width:16,height:16,border:'2px solid #005BBF',borderTopColor:'transparent',borderRadius:'50%',animation:'spin .6s linear infinite'}}/>Loading…</div>
-
-  return (
-    <div>
-      <SectionHead title="Site Images" subtitle="Upload or replace any image used on the website. Changes go live immediately."/>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'1.5rem'}}>
-        {SITE_IMAGE_SLOTS.map(slot => {
-          const currentUrl = images[slot.key] || slot.fallback
-          const hasCustom  = !!images[slot.key]
-          return (
-            <div key={slot.key} style={{border:'1px solid #C1C6D6',borderRadius:14,overflow:'hidden',background:'#fff'}}>
-              <div style={{aspectRatio:slot.aspect,background:'#F2F4F6',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
-                <img src={currentUrl} alt={slot.label} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none'}}/>
-                <span style={{position:'absolute',top:8,right:8,background:hasCustom?'#E6F4EA':'#F2F4F6',color:hasCustom?'#137333':'#727785',fontSize:'.65rem',fontWeight:700,padding:'.18rem .55rem',borderRadius:999}}>{hasCustom?'Custom ✓':'Default'}</span>
-              </div>
-              <div style={{padding:'1rem'}}>
-                <p style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'.9rem',marginBottom:'.2rem'}}>{slot.label}</p>
-                <p style={{fontSize:'.75rem',color:'#727785',marginBottom:'.85rem',lineHeight:1.5}}>{slot.desc}</p>
-                <ImageUploader storagePath={`site/${slot.key}`} onUploaded={url => handleUploaded(slot.key, url)} label={hasCustom?'Replace Image':'Upload Image'} hint={slot.hint}/>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
 /* ═══════════════════════════════════════════════
    TAB — BANNERS
 ═══════════════════════════════════════════════ */
@@ -1192,7 +1122,6 @@ export default function Admin() {
     {id:'catalog',    label:'📋 Catalog'},
     {id:'images',     label:'📸 Phone Images'},
     {id:'banners',    label:'🖼 Banners'},
-    {id:'siteimages', label:'🌐 Site Images'},
     {id:'accessories',label:'🎧 Accessories'},
   ]
 
@@ -1219,7 +1148,6 @@ export default function Admin() {
         {tab==='images'     &&<TabImages       catalog={catalog} setCatalog={setCatalog} phones={phones} showToast={show}/>}
         {tab==='prices'     &&<TabPrices       phones={phones} onSavePrice={handleSavePrice}/>}
         {tab==='banners'    &&<TabBanners      showToast={show}/>}
-        {tab==='siteimages' &&<TabSiteImages   showToast={show}/>}
         {tab==='accessories'&&<TabAccessories  catalog={catalog} showToast={show}/>}
       </div>
       <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
